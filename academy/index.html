@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACG Academy — Learn the Standards</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Crimson+Pro:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0d0f;--s1:#111518;--s2:#1a1f24;--br:#2a3038;--grn:#4ae08a;--grn2:#2cb866;--grnd:rgba(74,224,138,.08);--amb:#d4883a;--amb2:#e9a45c;--ambd:rgba(212,136,58,.06);--red:#e05555;--blu:#5b9bd5;--cyn:#4ad4e0;--vio:#b48aee;--t:#c8cdd3;--td:#6b7280;--tb:#eef0f2;--fm:'IBM Plex Mono',monospace;--fs:'Crimson Pro',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t);font-family:var(--fm);min-height:100vh;display:flex;flex-direction:column}
+
+.hdr{text-align:center;padding:1.8rem 1rem 1.2rem;border-bottom:1px solid var(--br);background:linear-gradient(180deg,#0f1317,var(--bg));position:relative}
+.hdr::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:200px;height:2px;background:linear-gradient(90deg,transparent,var(--vio),transparent)}
+.hdr .badge{display:inline-block;border:1px solid var(--vio);color:var(--vio);font-size:.6rem;padding:.15rem .5rem;border-radius:1rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.5rem}
+.hdr h1{font-size:clamp(1.4rem,3.5vw,2rem);font-weight:600;color:var(--tb);letter-spacing:.15em}
+.hdr h1 span{color:var(--vio)}
+.hdr .sub{font-family:var(--fs);font-size:.95rem;color:var(--td);font-style:italic;max-width:36rem;margin:.3rem auto 0}
+.hdr .nav{margin-top:.6rem;font-size:.6rem}
+.hdr .nav a{color:var(--grn);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;margin:0 .5rem}
+
+/* Status */
+.sbar{font-size:.68rem;text-align:center;padding:.4rem 1rem;color:var(--td);border-bottom:1px solid var(--br);background:var(--s1)}
+#status .count{color:var(--vio);font-weight:600}
+
+/* Module grid */
+main{flex:1;max-width:64rem;width:100%;margin:0 auto;padding:1.5rem}
+.modules{display:grid;grid-template-columns:repeat(auto-fill,minmax(18rem,1fr));gap:.8rem;margin-bottom:1.5rem}
+.mod{background:var(--s1);border:1px solid var(--br);border-radius:.5rem;padding:1rem 1.2rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.mod:hover{border-color:var(--vio);transform:translateY(-2px)}
+.mod::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--vio);border-radius:3px 0 0 3px}
+.mod .icon{font-size:1.3rem;margin-bottom:.3rem}
+.mod .name{font-size:.85rem;font-weight:600;color:var(--tb);margin-bottom:.15rem}
+.mod .desc{font-family:var(--fs);font-size:.8rem;color:var(--td);line-height:1.45}
+.mod .meta{display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap}
+.mod .tag{font-size:.48rem;border:1px solid var(--br);border-radius:.2rem;padding:.1rem .3rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em}
+.mod .lessons{color:var(--vio);font-size:.55rem;font-weight:600}
+
+/* Lesson viewer */
+#viewer{display:none;background:var(--s1);border:1px solid var(--br);border-radius:.5rem;margin-bottom:1.5rem;overflow:hidden}
+#viewer .vhdr{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:1px solid var(--br);background:var(--s2)}
+#viewer .vhdr .vtitle{font-size:.8rem;font-weight:600;color:var(--tb)}
+#viewer .vhdr .vclose{background:none;border:1px solid var(--br);border-radius:.25rem;color:var(--td);font-family:var(--fm);font-size:.65rem;padding:.2rem .5rem;cursor:pointer}
+#viewer .vhdr .vclose:hover{border-color:var(--red);color:var(--red)}
+#lesson-nav{display:flex;gap:.3rem;padding:.5rem 1rem;border-bottom:1px solid var(--br);flex-wrap:wrap}
+.lnav-btn{background:var(--bg);border:1px solid var(--br);border-radius:.3rem;padding:.25rem .6rem;font-family:var(--fm);font-size:.6rem;color:var(--td);cursor:pointer;transition:all .2s}
+.lnav-btn:hover,.lnav-btn.active{border-color:var(--vio);color:var(--vio)}
+.lnav-btn.active{background:rgba(180,138,238,.08);font-weight:600}
+#lesson-content{padding:1.2rem 1.5rem;font-family:var(--fs);font-size:.92rem;line-height:1.7;color:var(--tb);max-height:60vh;overflow-y:auto}
+#lesson-content h1,#lesson-content h2,#lesson-content h3{font-family:var(--fm);color:var(--vio);margin:1rem 0 .5rem;letter-spacing:.05em}
+#lesson-content h1{font-size:1.1rem}
+#lesson-content h2{font-size:.9rem;color:var(--amb)}
+#lesson-content h3{font-size:.8rem;color:var(--cyn)}
+#lesson-content p{margin-bottom:.7rem}
+#lesson-content code{background:var(--s2);padding:.1rem .35rem;border-radius:.2rem;font-family:var(--fm);font-size:.78rem;color:var(--grn)}
+#lesson-content pre{background:var(--bg);border:1px solid var(--br);border-radius:.4rem;padding:.8rem 1rem;margin:.6rem 0;overflow-x:auto}
+#lesson-content pre code{background:none;padding:0;font-size:.72rem;color:var(--t);display:block;line-height:1.6}
+#lesson-content ul,#lesson-content ol{margin:.5rem 0 .7rem 1.5rem}
+#lesson-content li{margin-bottom:.3rem}
+#lesson-content blockquote{border-left:2px solid var(--vio);padding-left:.8rem;color:var(--td);font-style:italic;margin:.6rem 0}
+#lesson-content strong{color:var(--tb)}
+#lesson-content em{color:var(--amb2)}
+#lesson-content hr{border:none;border-top:1px solid var(--br);margin:1rem 0}
+
+/* Run button */
+.run-area{padding:.5rem 1rem;border-top:1px solid var(--br);display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.run-btn{background:var(--grn2);color:var(--bg);border:none;border-radius:.35rem;padding:.4rem .9rem;font-family:var(--fm);font-size:.68rem;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;transition:all .2s}
+.run-btn:hover{background:var(--grn)}
+#run-output{font-family:var(--fm);font-size:.68rem;color:var(--td)}
+
+footer{text-align:center;padding:.4rem;font-size:.5rem;color:var(--td);border-top:1px solid var(--br)}
+footer a{color:var(--grn);text-decoration:none}
+
+#lesson-content::-webkit-scrollbar{width:4px}#lesson-content::-webkit-scrollbar-track{background:var(--s1)}#lesson-content::-webkit-scrollbar-thumb{background:var(--br);border-radius:2px}
+
+@media(prefers-reduced-motion:reduce){.mod:hover{transform:none}}
+@media(max-width:600px){main{padding:1rem .6rem}.modules{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="badge">ACG Guild · Learning Platform</div>
+  <h1><span>Academy</span></h1>
+  <div class="sub">Auto-discovered curriculum from every module's academy.md — learn the standards, live</div>
+  <div class="nav"><a href="../">Home</a> <a href="../eliza/">ELIZA</a> <a href="../sandbox/">Sandbox</a> <a href="../konomi/">KONOMI</a> <a href="../guild-chain/">Guild Chain</a></div>
+</header>
+
+<div class="sbar" id="status">Scanning directories for academy.md files… <span class="count" id="mod-count">0</span> modules found</div>
+
+<main>
+  <div id="viewer">
+    <div class="vhdr">
+      <span class="vtitle" id="vtitle">Lesson</span>
+      <button class="vclose" id="vclose">Close</button>
+    </div>
+    <div id="lesson-nav"></div>
+    <div id="lesson-content"></div>
+    <div class="run-area">
+      <button class="run-btn" id="run-btn">Run Code Blocks</button>
+      <span id="run-output"></span>
+    </div>
+  </div>
+  <div class="modules" id="modules"></div>
+</main>
+
+<footer><a href="../">Home</a> · Academy · ACG Guild Platform · Auto-discovered from academy.md files</footer>
+
+<script>
+// ── Academy Module Registry ──────────────────────────────────────────
+// Each directory's academy.md is registered here with its content.
+// In a full server setup, these would be fetched dynamically.
+// For static hosting, we embed the discovered modules.
+
+const ACADEMY_MODULES = {
+  "eliza": {
+    path: "../eliza/",
+    icon: "⚒",
+    color: "#4ae08a",
+    academy: null,  // loaded dynamically
+    lessons: ["01-reverse-turing-test.md", "02-webllm-local-ai.md", "03-vetting-protocol.md"]
+  },
+  "sandbox": {
+    path: "../sandbox/",
+    icon: "⬡",
+    color: "#4ad4e0",
+    academy: null,
+    lessons: ["01-mcp-tools.md", "02-alignment-scoring.md"]
+  },
+  "konomi": {
+    path: "../konomi/",
+    icon: "⚙",
+    color: "#d4883a",
+    academy: null,
+    lessons: ["01-self-defining-standards.md", "02-isa88-batch.md", "03-tag-system.md"]
+  },
+  "guild-chain": {
+    path: "../guild-chain/",
+    icon: "⛓",
+    color: "#5b9bd5",
+    academy: null,
+    lessons: ["01-dual-layer-blockchain.md", "02-ethical-refusal.md", "03-3d-vector-blocks.md"]
+  },
+  "scanner": {
+    path: "../scanner/",
+    icon: "⚠",
+    color: "#e05555",
+    academy: null,
+    lessons: ["01-compliance-rules.md"]
+  },
+  "academy": {
+    path: "./",
+    icon: "📖",
+    color: "#b48aee",
+    academy: null,
+    lessons: ["01-getting-started.md"]
+  }
+};
+
+// ── Embedded academy.md content (auto-discovered) ────────────────────
+const ACADEMY_CONTENT = {};
+
+// These will be populated by fetch or embedded inline
+const LESSON_CONTENT = {};
+
+// ── Markdown parser (minimal) ────────────────────────────────────────
+function md(src) {
+  if (!src) return "<p><em>No content loaded</em></p>";
+  let h = src
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Code blocks
+  h = h.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    return `<pre><code data-lang="${lang}">${code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>`;
+  });
+
+  // Lists
+  h = h.replace(/^- (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
+
+  // Paragraphs
+  h = h.replace(/^(?!<[hublop]|<\/)(.*\S.*)$/gm, '<p>$1</p>');
+
+  return h;
+}
+
+// ── Fetch academy.md files ───────────────────────────────────────────
+async function loadAcademyFile(dir, path) {
+  try {
+    const res = await fetch(path + "academy.md");
+    if (!res.ok) return null;
+    return await res.text();
+  } catch { return null; }
+}
+
+async function loadLesson(dir, lessonFile) {
+  const key = `${dir}/${lessonFile}`;
+  if (LESSON_CONTENT[key]) return LESSON_CONTENT[key];
+  try {
+    const res = await fetch(`lessons/${dir}/${lessonFile}`);
+    if (!res.ok) {
+      // Try parent dir
+      const res2 = await fetch(`../academy/lessons/${dir}/${lessonFile}`);
+      if (!res2.ok) return null;
+      const txt = await res2.text();
+      LESSON_CONTENT[key] = txt;
+      return txt;
+    }
+    const txt = await res.text();
+    LESSON_CONTENT[key] = txt;
+    return txt;
+  } catch { return null; }
+}
+
+// ── UI ───────────────────────────────────────────────────────────────
+const modules = document.getElementById("modules");
+const viewer = document.getElementById("viewer");
+const vtitle = document.getElementById("vtitle");
+const lessonNav = document.getElementById("lesson-nav");
+const lessonContent = document.getElementById("lesson-content");
+const modCount = document.getElementById("mod-count");
+const status = document.getElementById("status");
+
+let currentModule = null;
+
+function renderModules() {
+  modules.innerHTML = "";
+  let count = 0;
+  for (const [dir, mod] of Object.entries(ACADEMY_MODULES)) {
+    count++;
+    const el = document.createElement("div");
+    el.className = "mod";
+    el.style.setProperty("--accent", mod.color);
+    el.innerHTML = `
+      <div class="icon">${mod.icon}</div>
+      <div class="name">${dir}</div>
+      <div class="desc">${mod.academy ? extractFirst(mod.academy) : "Loading…"}</div>
+      <div class="meta">
+        <span class="lessons">${mod.lessons.length} lesson${mod.lessons.length !== 1 ? "s" : ""}</span>
+        ${mod.lessons.map(l => `<span class="tag">${l.replace(/^\d+-/,"").replace(/\.md$/,"")}</span>`).join("")}
+      </div>`;
+    el.querySelector(".mod").style;
+    el.style.cssText = `--accent:${mod.color}`;
+    el.querySelector("::before") || true;
+    el.addEventListener("click", () => openModule(dir));
+    modules.appendChild(el);
+  }
+  modCount.textContent = count;
+  status.innerHTML = `Discovered <span class="count">${count}</span> modules with academy.md files`;
+}
+
+function extractFirst(mdText) {
+  const lines = mdText.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith(">"));
+  return lines[0]?.replace(/\*\*/g,"").replace(/\*/g,"").substring(0, 120) || "Academy module";
+}
+
+async function openModule(dir) {
+  currentModule = dir;
+  const mod = ACADEMY_MODULES[dir];
+  vtitle.textContent = `${mod.icon} ${dir} — Academy`;
+  viewer.style.display = "block";
+
+  // Build lesson nav
+  lessonNav.innerHTML = `<button class="lnav-btn active" data-lesson="overview">Overview</button>`;
+  mod.lessons.forEach(l => {
+    const btn = document.createElement("button");
+    btn.className = "lnav-btn";
+    btn.dataset.lesson = l;
+    btn.textContent = l.replace(/^\d+-/,"").replace(/\.md$/,"").replace(/-/g," ");
+    lessonNav.appendChild(btn);
+  });
+
+  // Show overview (academy.md)
+  lessonContent.innerHTML = md(mod.academy || "*No academy.md found for this module*");
+
+  // Wire nav buttons
+  lessonNav.querySelectorAll(".lnav-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      lessonNav.querySelectorAll(".lnav-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      if (btn.dataset.lesson === "overview") {
+        lessonContent.innerHTML = md(mod.academy || "*No academy.md found*");
+      } else {
+        lessonContent.innerHTML = "<p><em>Loading lesson…</em></p>";
+        const content = await loadLesson(dir, btn.dataset.lesson);
+        lessonContent.innerHTML = md(content || `*Lesson file not found: lessons/${dir}/${btn.dataset.lesson}*\n\nCreate this file to add content.`);
+      }
+    });
+  });
+
+  viewer.scrollIntoView({ behavior: "smooth" });
+}
+
+document.getElementById("vclose").addEventListener("click", () => {
+  viewer.style.display = "none";
+  currentModule = null;
+});
+
+// ── Run code blocks ──────────────────────────────────────────────────
+document.getElementById("run-btn").addEventListener("click", () => {
+  const codeBlocks = lessonContent.querySelectorAll("pre code");
+  const output = document.getElementById("run-output");
+  if (!codeBlocks.length) {
+    output.textContent = "No code blocks found in this lesson.";
+    return;
+  }
+  let results = [];
+  codeBlocks.forEach((block, i) => {
+    const lang = block.dataset.lang;
+    const code = block.textContent;
+    if (lang === "javascript" || lang === "js") {
+      try {
+        const result = eval(code);
+        results.push(`Block ${i+1}: ${result !== undefined ? result : "OK"}`);
+      } catch(e) {
+        results.push(`Block ${i+1}: Error — ${e.message}`);
+      }
+    } else {
+      results.push(`Block ${i+1}: ${lang || "unknown"} — view only`);
+    }
+  });
+  output.textContent = results.join(" | ");
+});
+
+// ── Init: load academy.md files ──────────────────────────────────────
+async function init() {
+  // Try to fetch each academy.md, fall back to embedded content
+  const embedded = {
+    "eliza": `# ELIZA Academy
+
+The ACG Guild's vetting interviewer — a Reverse Turing Test where AI assesses human alignment.
+
+## What You'll Learn
+
+- How the Reverse Turing Test works and why it matters
+- Running AI models locally with WebLLM and WebGPU
+- The 6-phase vetting protocol based on the ACG Manifesto
+- Building conversational AI interfaces
+
+## Prerequisites
+
+- Modern browser with WebGPU support (Chrome 113+)
+- Understanding of the ACG Manifesto's 6 principles
+- No server or API keys needed — everything runs locally
+
+## Key Concepts
+
+**Local AI**: ELIZA downloads and runs language models entirely in your browser using WebGPU. No data leaves your device.
+
+**Reverse Turing Test**: Unlike the classic test (can AI fool a human?), ELIZA flips it — can the *human* demonstrate genuine understanding of ethical AI?
+
+**6-Phase Protocol**: Innovation, Quality, Safety, Human Protection, Consent, Right to Refuse.`,
+
+    "sandbox": `# Sandbox Academy
+
+The isolated tool environment that ELIZA and other ACG tools can call during operations.
+
+## What You'll Learn
+
+- MCP (Model Context Protocol) tool architecture
+- Building ACG principle lookup and alignment scoring tools
+- REST and stdio interfaces for AI tool integration
+- Voice-activated tool calling with Web Speech API
+
+## Prerequisites
+
+- Python 3.10+ for the server tools
+- Understanding of JSON-RPC / MCP protocol
+- Browser with Web Speech API for voice features
+
+## Key Concepts
+
+**MCP Tools**: Standardized way for AI models to call external tools. Each tool has a schema, parameters, and returns structured results.
+
+**Alignment Scoring**: Automated analysis of text against the 6 ACG principles using keyword density and semantic matching.
+
+**Voice Interface**: The sandbox voice page uses Web Speech API for input and SpeechSynthesis for output — fully client-side.`,
+
+    "konomi": `# KONOMI Academy
+
+The Self-Defining Industrial Standards System — ISA-88, ISA-95, ISA-18.2, ISA-101, OPC-UA, Sparkplug, Modbus, and more.
+
+## What You'll Learn
+
+- How industrial standards interconnect (crosswalking)
+- ISA-88 batch control: procedures, recipes, state machines
+- The tag system — the nervous system of the factory
+- Self-defining meta-standards: standards that describe standards
+- PLC code generation with the L5X compiler
+
+## Prerequisites
+
+- Basic understanding of manufacturing/process control
+- Python 3.10+ for running the standard implementations
+- Familiarity with any one ISA standard is helpful but not required
+
+## Key Concepts
+
+**Self-Defining**: KONOMI's meta layer lets standards define their own structure using UDTs (User Defined Types), state machines, and rules.
+
+**Tag System**: Every value in a factory is a tag. Tags have paths, types, quality flags, and timestamps. The tag provider is the nervous system.
+
+**Crosswalking**: Mapping concepts between standards. An ISA-88 equipment module maps to an ISA-95 equipment segment. KONOMI tracks these relationships.`,
+
+    "guild-chain": `# Guild Chain Academy
+
+ACG-KCC: Konomi Cube Coin Private Fork — immutable blockchain for ethical refusals, vetting records, and guild operations.
+
+## What You'll Learn
+
+- Dual-layer blockchain architecture (PoA Layer 1 + DPoS Layer 2)
+- The Ethical Refusal Register — un-removable on-chain records
+- GLD token economics (earned, never purchased)
+- 3D vector space blocks for encoding standards data
+- Running nodes on Raspberry Pi hardware
+
+## Prerequisites
+
+- Understanding of blockchain fundamentals (blocks, hashing, consensus)
+- The ACG Manifesto, especially Principle 6 (Right to Refuse)
+- Python 3.10+ for running the chain locally
+
+## Key Concepts
+
+**Dual Layer**: L1 (PoA) is the permanent record — refusals, certs, governance. L2 (DPoS) is fast operations — vetting sessions, events, state. The bridge decides what escalates.
+
+**Ethical Refusal Register**: Once a professional files a refusal, it's on-chain forever. Can't be deleted, altered, or retaliated against.
+
+**3D Vector Blocks**: Standards and code are encoded into 3D vector space coordinates, creating an immutable spatial index of all ACG knowledge.`,
+
+    "scanner": `# Scanner Academy
+
+KONOMI Scanner — standards compliance linter for source code and configurations.
+
+## What You'll Learn
+
+- Writing compliance rules for ISA-88/95/18/101
+- AI-powered deep scan using local models
+- OPC-UA, Sparkplug, and Modbus protocol validation
+- ACG Manifesto compliance checking
+
+## Prerequisites
+
+- Source code or configuration files to scan
+- Understanding of at least one industrial standard
+
+## Key Concepts
+
+**Rule Sets**: Each standard has a set of rules. Rules check for naming conventions, required fields, state machine completeness, and protocol compliance.
+
+**AI Deep Scan**: Beyond regex matching — the scanner can use local LLMs to understand intent and flag subtle non-compliance.`,
+
+    "academy": `# Academy — Getting Started
+
+Welcome to the ACG Academy. This platform auto-discovers academy.md files from every directory in the project and builds a curriculum automatically.
+
+## How It Works
+
+1. Every directory can contain an \`academy.md\` file
+2. The Academy HTML scans for these files on load
+3. Each module can also have \`lessons/\` with individual .md files
+4. Lessons can contain runnable code blocks (JavaScript runs in-browser)
+
+## Creating New Modules
+
+Add an \`academy.md\` to any directory:
+
+\`\`\`markdown
+# Module Name
+
+Description of what this module teaches.
+
+## What You'll Learn
+- Topic 1
+- Topic 2
+
+## Key Concepts
+**Concept**: Explanation.
+\`\`\`
+
+Then create \`academy/lessons/<dir>/01-lesson-name.md\` for individual lessons.
+
+## Philosophy
+
+> "The best documentation teaches. The best teaching is hands-on." — ACG Manifesto
+
+The Academy is designed for *live testing* — code blocks can be executed, tools can be called, and standards can be queried interactively.`
+  };
+
+  for (const [dir, mod] of Object.entries(ACADEMY_MODULES)) {
+    // Try fetch first, fall back to embedded
+    const fetched = await loadAcademyFile(dir, mod.path);
+    mod.academy = fetched || embedded[dir] || null;
+  }
+
+  renderModules();
+}
+
+init();
+</script>
+</body>
+</html>

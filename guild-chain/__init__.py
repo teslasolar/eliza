@@ -19,3 +19,8 @@ from guild_chain.agents import GuildAgent, GUILD_AGENTS
 from guild_chain.contracts import EthicalRefusal, VettingSession, Certification
 from guild_chain.refusal import RefusalRegister, RetaliationDetector
 from guild_chain.tags import create_provider
+from guild_chain.vectors import (
+    VectorChain, VectorBlock, Vector3D,
+    DomainAxis, AbstractionAxis, LifecycleAxis,
+    KONOMI_VECTORS, ACG_VECTORS, build_standard_chain,
+)
