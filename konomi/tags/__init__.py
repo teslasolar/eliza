@@ -6,3 +6,6 @@ from konomi.tags.equipment import EquipmentTags
 from konomi.tags.batch import BatchTags
 from konomi.tags.alarm import AlarmTags
 from konomi.tags.factory_tags import FactoryTagDatabase
+from konomi.tags.directory_provider import (
+    DirectoryTagProvider, DirectoryTagRegistry, DirectoryMeta, build_registry,
+)
