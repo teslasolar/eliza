@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KONOMI Scanner — ACG Standards Compliance</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Crimson+Pro:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0d0f;--s1:#111518;--s2:#1a1f24;--br:#2a3038;
+  --grn:#4ae08a;--grn2:#2cb866;--grnd:rgba(74,224,138,.08);
+  --amb:#d4883a;--amb2:#e9a45c;--ambd:rgba(212,136,58,.06);
+  --red:#e05555;--red2:#c94444;--redd:rgba(224,85,85,.08);
+  --blu:#5b9bd5;--blud:rgba(91,155,213,.08);
+  --t:#c8cdd3;--td:#6b7280;--tb:#eef0f2;
+  --fm:'IBM Plex Mono',monospace;--fs:'Crimson Pro',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t);font-family:var(--fm);min-height:100vh;display:flex;flex-direction:column}
+
+/* Header */
+.hdr{text-align:center;padding:1.8rem 1rem 1.2rem;border-bottom:1px solid var(--br);background:linear-gradient(180deg,#0f1317,var(--bg));position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:200px;height:2px;background:linear-gradient(90deg,transparent,var(--amb),transparent)}
+.hdr .badge{display:inline-block;border:1px solid var(--amb);color:var(--amb);font-size:.6rem;padding:.15rem .5rem;border-radius:1rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.5rem}
+.hdr h1{font-size:clamp(1.4rem,4vw,2.2rem);font-weight:600;color:var(--tb);letter-spacing:.15em;margin:.2rem 0}
+.hdr h1 span{color:var(--amb)}
+.hdr .sub{font-family:var(--fs);font-size:1.05rem;color:var(--td);font-style:italic;max-width:36rem;margin:.3rem auto 0}
+.hdr .nav{margin-top:.6rem;font-size:.6rem}
+.hdr .nav a{color:var(--grn);text-decoration:none;letter-spacing:.1em;text-transform:uppercase}
+.hdr .nav a:hover{text-decoration:underline}
+
+/* Controls */
+.ctrl{display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.6rem 1rem;background:var(--s1);border-bottom:1px solid var(--br);flex-wrap:wrap}
+.ctrl label{font-size:.65rem;color:var(--td);text-transform:uppercase;letter-spacing:.1em}
+.ctrl select{background:var(--s2);color:var(--t);border:1px solid var(--br);border-radius:.25rem;padding:.25rem .4rem;font-family:var(--fm);font-size:.68rem}
+.ctrl .btn{background:var(--grn2);color:var(--bg);border:none;border-radius:.35rem;padding:.45rem 1rem;font-family:var(--fm);font-size:.75rem;font-weight:600;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;transition:all .2s}
+.ctrl .btn:hover:not(:disabled){background:var(--grn);transform:scale(1.02)}
+.ctrl .btn:disabled{opacity:.35;cursor:not-allowed}
+.ctrl .btn.scan{animation:pulse 2s infinite;background:var(--amb2);font-size:.85rem;padding:.5rem 1.4rem}
+.ctrl .btn.scan:hover:not(:disabled){background:var(--amb)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(212,136,58,.4)}50%{box-shadow:0 0 0 8px rgba(212,136,58,0)}}
+
+/* No GPU warning */
+#no-gpu{display:none;text-align:center;padding:1rem;color:var(--amb);font-family:var(--fm);font-size:.78rem;border-bottom:1px solid var(--br);background:var(--ambd)}
+#no-gpu a{color:var(--amb2)}
+
+/* Status bar */
+.sbar{font-size:.68rem;text-align:center;padding:.35rem 1rem;background:var(--bg);color:var(--td);display:flex;align-items:center;justify-content:center;gap:.5rem}
+#pbw{width:min(18rem,50%);height:4px;background:var(--s2);border-radius:2px;overflow:hidden;display:none}
+#pb{height:100%;background:var(--amb);width:0%;transition:width .3s;border-radius:2px}
+
+/* Standards selector */
+.std-sel{padding:.5rem 1rem;background:var(--s1);border-bottom:1px solid var(--br)}
+.std-sel .inner{max-width:52rem;margin:0 auto;display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}
+.std-sel .lbl{font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.1em;margin-right:.3rem}
+.std-tag{display:inline-flex;align-items:center;gap:.2rem;font-size:.58rem;padding:.15rem .4rem;border-radius:.2rem;border:1px solid var(--br);background:var(--s2);color:var(--td);cursor:pointer;transition:all .2s;user-select:none}
+.std-tag:hover{border-color:var(--amb)}
+.std-tag.active{border-color:var(--amb);color:var(--amb);background:var(--ambd)}
+.std-tag input{display:none}
+
+/* Main layout */
+.main{flex:1;display:flex;max-width:72rem;width:100%;margin:0 auto;overflow:hidden}
+@media(max-width:800px){.main{flex-direction:column}}
+
+/* Code input */
+.code-panel{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--br)}
+@media(max-width:800px){.code-panel{border-right:none;border-bottom:1px solid var(--br);max-height:40vh}}
+.code-panel .panel-hdr{font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.12em;padding:.4rem .8rem;background:var(--s1);border-bottom:1px solid var(--br);display:flex;justify-content:space-between;align-items:center}
+.code-panel .panel-hdr .file-hint{color:var(--td);font-style:italic;font-family:var(--fs);text-transform:none;letter-spacing:0;font-size:.7rem}
+#code-input{flex:1;background:var(--bg);color:var(--tb);border:none;padding:.8rem;font-family:var(--fm);font-size:.8rem;line-height:1.6;resize:none;outline:none;tab-size:2;white-space:pre;overflow:auto}
+#code-input::placeholder{color:var(--td)}
+
+/* Results panel */
+.results-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.results-panel .panel-hdr{font-size:.58rem;color:var(--td);text-transform:uppercase;letter-spacing:.12em;padding:.4rem .8rem;background:var(--s1);border-bottom:1px solid var(--br);display:flex;justify-content:space-between;align-items:center}
+#results{flex:1;overflow-y:auto;padding:.6rem}
+
+/* Result items */
+.r-item{margin-bottom:.5rem;border:1px solid var(--br);border-radius:.3rem;overflow:hidden;animation:fi .3s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.r-item .r-hdr{display:flex;align-items:center;gap:.4rem;padding:.35rem .6rem;font-size:.65rem;cursor:pointer;user-select:none}
+.r-item .r-hdr:hover{background:var(--s2)}
+.r-item .r-body{padding:.4rem .6rem;font-size:.75rem;line-height:1.5;border-top:1px solid var(--br);color:var(--t);font-family:var(--fs)}
+.r-item .r-body code{font-family:var(--fm);font-size:.7rem;background:var(--s2);padding:.1rem .3rem;border-radius:.15rem}
+.r-item .r-body .r-fix{margin-top:.3rem;padding-top:.3rem;border-top:1px solid var(--br);color:var(--grn);font-size:.7rem}
+
+.sev{font-size:.5rem;padding:.1rem .3rem;border-radius:.15rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-family:var(--fm)}
+.sev-fatal{background:var(--redd);color:var(--red);border:1px solid var(--red)}
+.sev-error{background:var(--redd);color:var(--red);border:1px solid rgba(224,85,85,.3)}
+.sev-warn{background:var(--ambd);color:var(--amb);border:1px solid rgba(212,136,58,.3)}
+.sev-info{background:var(--blud);color:var(--blu);border:1px solid rgba(91,155,213,.3)}
+
+.r-rule{font-size:.55rem;color:var(--td);font-family:var(--fm)}
+.r-msg{flex:1;color:var(--tb);font-size:.72rem}
+.r-std{font-size:.5rem;color:var(--td);margin-left:auto;font-family:var(--fm)}
+
+/* Summary bar */
+.summary{padding:.5rem .8rem;background:var(--s1);border-bottom:1px solid var(--br);display:none;font-size:.65rem;color:var(--td)}
+.summary .inner{max-width:52rem;margin:0 auto;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+.summary .cnt{display:inline-flex;align-items:center;gap:.2rem}
+.summary .cnt .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.summary .grade{margin-left:auto;font-weight:600;font-size:.75rem}
+.grade-pass{color:var(--grn)}.grade-warn{color:var(--amb)}.grade-fail{color:var(--red)}
+
+/* LLM analysis */
+.llm-section{border-top:1px solid var(--br);margin-top:.5rem;padding-top:.5rem}
+.llm-section .llm-hdr{font-size:.58rem;color:var(--amb);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.3rem}
+.llm-analysis{font-family:var(--fs);font-size:.82rem;line-height:1.6;color:var(--t);padding:.4rem .6rem;border-left:2px solid var(--amb)}
+
+/* Empty state */
+.empty{text-align:center;padding:3rem 1rem;color:var(--td);font-family:var(--fs);font-style:italic}
+.empty .icon{font-size:2rem;margin-bottom:.5rem}
+
+/* Scrollbar */
+#results::-webkit-scrollbar,#code-input::-webkit-scrollbar{width:4px}
+#results::-webkit-scrollbar-track,#code-input::-webkit-scrollbar-track{background:var(--bg)}
+#results::-webkit-scrollbar-thumb,#code-input::-webkit-scrollbar-thumb{background:var(--br);border-radius:2px}
+
+/* Footer */
+footer{text-align:center;padding:.35rem;font-size:.52rem;color:var(--td);border-top:1px solid var(--br)}
+footer a{color:var(--grn);text-decoration:none}
+footer a:hover{text-decoration:underline}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+  .ctrl .btn.scan{animation:none}
+  .r-item{animation:none}
+}
+
+/* Mobile */
+@media(max-width:600px){
+  .hdr{padding:1.2rem .8rem .8rem}
+  .hdr h1{font-size:1.4rem}
+  .ctrl{gap:.4rem;padding:.5rem .6rem}
+  .ctrl .btn.scan{font-size:.75rem;padding:.4rem 1rem}
+  .std-tag{font-size:.5rem}
+}
+</style>
+</head>
+<body>
+<header class="hdr" role="banner">
+  <div class="badge">ACG Platform · Standards Compliance Scanner</div>
+  <h1><span>KONOMI</span> Scanner</h1>
+  <div class="sub">Linter on steroids — inspect and verify whether your solutions meet the bar</div>
+  <div class="nav"><a href="../">← Back to ELIZA</a></div>
+</header>
+
+<nav class="ctrl" role="toolbar" aria-label="Scanner controls">
+  <label for="ms">Engine:</label>
+  <select id="ms" aria-label="Select AI model for deep analysis">
+    <option value="SmolLM2-360M-Instruct-q4f16_1-MLC">SmolLM2 360M (~130MB · fast)</option>
+    <option value="SmolLM2-1.7B-Instruct-q4f16_1-MLC">SmolLM2 1.7B (~1GB · better)</option>
+    <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B (~700MB)</option>
+    <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B (~2GB · best)</option>
+  </select>
+  <button class="btn" id="static-btn" aria-label="Run static analysis only">Static Scan</button>
+  <button class="btn scan" id="deep-btn" aria-label="Run deep analysis with AI model">⚒ Deep Scan</button>
+</nav>
+
+<div id="no-gpu" role="alert">
+  WebGPU not detected. Static scanning works in any browser. Deep Scan (AI-powered) requires Chrome 113+ or Edge 113+.
+  <br><a href="https://developer.chrome.com/docs/web-platform/webgpu" target="_blank" rel="noopener">Learn about WebGPU</a>
+</div>
+
+<div class="sbar" role="status" aria-live="polite"><span id="st">Paste code on the left, select standards, and scan</span><div id="pbw" role="progressbar"><div id="pb"></div></div></div>
+
+<div class="std-sel" aria-label="Standards to check against">
+  <div class="inner">
+    <span class="lbl">Standards:</span>
+    <label class="std-tag active"><input type="checkbox" value="ISA-95" checked>ISA-95</label>
+    <label class="std-tag active"><input type="checkbox" value="ISA-88" checked>ISA-88</label>
+    <label class="std-tag active"><input type="checkbox" value="ISA-101" checked>ISA-101</label>
+    <label class="std-tag active"><input type="checkbox" value="ISA-18.2" checked>ISA-18.2</label>
+    <label class="std-tag active"><input type="checkbox" value="OPC-UA" checked>OPC-UA</label>
+    <label class="std-tag"><input type="checkbox" value="Sparkplug">Sparkplug</label>
+    <label class="std-tag"><input type="checkbox" value="Modbus">Modbus</label>
+    <label class="std-tag"><input type="checkbox" value="KPI">KPIs</label>
+    <label class="std-tag active"><input type="checkbox" value="ACG" checked>ACG Manifesto</label>
+  </div>
+</div>
+
+<div class="summary" id="summary">
+  <div class="inner">
+    <span class="cnt"><span class="dot" style="background:var(--red)"></span> <span id="cnt-err">0</span> errors</span>
+    <span class="cnt"><span class="dot" style="background:var(--amb)"></span> <span id="cnt-warn">0</span> warnings</span>
+    <span class="cnt"><span class="dot" style="background:var(--blu)"></span> <span id="cnt-info">0</span> info</span>
+    <span class="cnt">| <span id="cnt-rules">0</span> rules checked</span>
+    <span class="grade" id="grade"></span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="code-panel">
+    <div class="panel-hdr">
+      <span>Code Input</span>
+      <span class="file-hint">paste code, config, or architecture</span>
+    </div>
+    <textarea id="code-input" placeholder="# Paste your code here...
+# Python, YAML, JSON, JavaScript, or any structured code
+# The scanner checks against selected ISA/industrial standards
+# and ACG Manifesto principles
+
+class BatchController:
+    def __init__(self):
+        self.state = 'running'  # hardcoded state string
+        self.alarms = []
+
+    def process(self, data):
+        # no input validation
+        result = ai_model.predict(data)
+        return result  # no verification of AI output
+
+    def set_alarm(self, msg):
+        self.alarms.append(msg)  # no priority, no severity
+        print(msg)  # no logging framework
+" spellcheck="false" aria-label="Code to analyze"></textarea>
+  </div>
+  <div class="results-panel">
+    <div class="panel-hdr">
+      <span>Findings</span>
+      <span id="result-count" class="file-hint"></span>
+    </div>
+    <div id="results">
+      <div class="empty">
+        <div class="icon">📐</div>
+        Paste code and click scan to check standards compliance.<br>
+        Static Scan uses pattern matching. Deep Scan adds AI analysis.
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  KONOMI Scanner · <a href="../">ELIZA Vetting</a> · ACG Guild Platform · 100% Local · Zero data transmitted
+</footer>
+
+<script type="module">
+import * as W from "https://esm.run/@mlc-ai/web-llm";
+
+// ============================================================
+// KONOMI STANDARD RULES — Static Analysis Engine
+// ============================================================
+
+const RULES = [
+
+  // ── ISA-88: Batch Control ──────────────────────────────────
+  {
+    id: "S88-001", std: "ISA-88", sev: "error",
+    name: "Hardcoded state strings",
+    desc: "State values should use an enum/constant, not hardcoded strings. ISA-88 defines formal state machines (IDLE→RUNNING→COMPLETE, etc.).",
+    fix: "Define states as an enum or constant class: class PhaseState(Enum): IDLE='idle'; RUNNING='running'; COMPLETE='complete'",
+    pattern: /(?:state|status)\s*[=:]\s*['"][a-z_]+['"]/gi,
+    standards: ["ISA-88"]
+  },
+  {
+    id: "S88-002", std: "ISA-88", sev: "warn",
+    name: "No state machine pattern detected",
+    desc: "ISA-88 requires formal state machines for batch control (IDLE→STARTING→EXECUTE→COMPLETING→COMPLETE). No state transition logic found.",
+    fix: "Implement PackML/ISA-88 state machine with explicit transitions, guards, and actions.",
+    test: (code) => {
+      const hasState = /state|status|phase/i.test(code);
+      const hasTransition = /transition|next_state|change_state|switch.*state|if.*state/i.test(code);
+      return hasState && !hasTransition;
+    },
+    standards: ["ISA-88"]
+  },
+  {
+    id: "S88-003", std: "ISA-88", sev: "warn",
+    name: "Missing recipe/procedure hierarchy",
+    desc: "ISA-88 defines a recipe hierarchy: Procedure→UnitProcedure→Operation→Phase. Batch logic should follow this structure.",
+    test: (code) => {
+      const hasBatch = /batch|recipe|procedure/i.test(code);
+      const hasHierarchy = /unit_procedure|operation.*phase|procedure.*operation/i.test(code);
+      return hasBatch && !hasHierarchy;
+    },
+    standards: ["ISA-88"]
+  },
+
+  // ── ISA-95: Enterprise/Control Integration ─────────────────
+  {
+    id: "S95-001", std: "ISA-95", sev: "warn",
+    name: "No equipment hierarchy detected",
+    desc: "ISA-95 defines: Enterprise→Site→Area→WorkCenter→WorkUnit→Equipment. Equipment references should follow this hierarchy.",
+    test: (code) => {
+      const hasEquip = /equipment|machine|device|asset/i.test(code);
+      const hasHier = /site|area|work_center|work_unit|hierarchy|parent/i.test(code);
+      return hasEquip && !hasHier;
+    },
+    standards: ["ISA-95"]
+  },
+  {
+    id: "S95-002", std: "ISA-95", sev: "info",
+    name: "Data flow level crossing",
+    desc: "ISA-95 defines data flows between levels (L0-L4). Direct communication between non-adjacent levels may indicate architecture issues.",
+    test: (code) => {
+      const hasL4 = /erp|business.*plan|sap|oracle/i.test(code);
+      const hasL0 = /sensor|actuator|plc.*direct|raw.*data/i.test(code);
+      return hasL4 && hasL0 && !/mes|scada|gateway|middleware/i.test(code);
+    },
+    standards: ["ISA-95"]
+  },
+
+  // ── ISA-18.2: Alarm Management ─────────────────────────────
+  {
+    id: "A18-001", std: "ISA-18.2", sev: "error",
+    name: "Alarm without priority",
+    desc: "ISA-18.2 requires every alarm to have a priority (P1-P4) based on consequence and required response time.",
+    fix: "Add priority: P1=Emergency(<1min), P2=High(<10min), P3=Medium(<1hr), P4=Low(shift).",
+    pattern: /alarm.*(?:append|add|push|create|new)\s*\(/gi,
+    antiPattern: /priority|severity|level|P[1-4]/i,
+    standards: ["ISA-18.2"]
+  },
+  {
+    id: "A18-002", std: "ISA-18.2", sev: "error",
+    name: "Alarm without actionable response",
+    desc: "ISA-18.2 Rule R3: Every alarm must be actionable. An alarm with no documented response procedure is a nuisance alarm.",
+    fix: "Document the operator response for each alarm: what to check, what action to take, expected outcome.",
+    test: (code) => {
+      const hasAlarm = /alarm|alert/i.test(code);
+      const hasResponse = /response|action|procedure|instruction|operator.*guide/i.test(code);
+      return hasAlarm && !hasResponse;
+    },
+    standards: ["ISA-18.2"]
+  },
+  {
+    id: "A18-003", std: "ISA-18.2", sev: "warn",
+    name: "No alarm state tracking",
+    desc: "ISA-18.2 defines alarm states: NORMAL, UNACK, ACKED, RTN_UNACK, SHELVED, OUT_OF_SERVICE. Alarms need state lifecycle management.",
+    test: (code) => {
+      const hasAlarm = /alarm/i.test(code);
+      const hasState = /ack|acknowledge|shelv|suppress|alarm.*state/i.test(code);
+      return hasAlarm && !hasState;
+    },
+    standards: ["ISA-18.2"]
+  },
+  {
+    id: "A18-004", std: "ISA-18.2", sev: "warn",
+    name: "Print/console used for alarms",
+    desc: "Alarms should use a structured logging/notification system, not print statements. ISA-18.2 requires alarm rationalization and tracking.",
+    fix: "Use a structured alarm management system with priority, state tracking, and operator notification.",
+    pattern: /(?:print|console\.log|System\.out)\s*\(.*(?:alarm|alert|warning|critical)/gi,
+    standards: ["ISA-18.2"]
+  },
+
+  // ── ISA-101: HMI Design ────────────────────────────────────
+  {
+    id: "H101-001", std: "ISA-101", sev: "warn",
+    name: "Hardcoded values in graphics/UI",
+    desc: "ISA-101 Rule R1: No hardcoded values in graphics. Bind to tag paths, not direct addresses.",
+    fix: "Use data binding to tag paths: bind(tag_path) instead of hardcoded values.",
+    pattern: /(?:color|style|display)\s*[=:]\s*['"]#[0-9a-fA-F]{3,8}['"]/gi,
+    test: (code) => {
+      const hasUI = /hmi|display|screen|graphic|dashboard|gui|widget/i.test(code);
+      const hasHardcode = /['"]#[0-9a-fA-F]{3,8}['"]|color\s*[:=]\s*['"](?:red|green|blue|yellow)/i.test(code);
+      return hasUI && hasHardcode;
+    },
+    standards: ["ISA-101"]
+  },
+  {
+    id: "H101-002", std: "ISA-101", sev: "info",
+    name: "No HMI layer hierarchy",
+    desc: "ISA-101 defines display layers: L1 Overview→L2 Area→L3 Unit→L4 Detail→L5 Support. Navigation should follow this hierarchy.",
+    test: (code) => {
+      const hasHMI = /hmi|screen|display|dashboard/i.test(code);
+      const hasLayers = /overview|area.*view|unit.*view|detail|layer|level.*[1-5]/i.test(code);
+      return hasHMI && !hasLayers;
+    },
+    standards: ["ISA-101"]
+  },
+
+  // ── OPC-UA: Communication ──────────────────────────────────
+  {
+    id: "OPC-001", std: "OPC-UA", sev: "warn",
+    name: "Direct device addressing instead of OPC-UA node path",
+    desc: "OPC-UA uses a structured address space (Root→Objects→...). Direct IP/register addressing bypasses the abstraction layer.",
+    pattern: /(?:192\.168|10\.0|172\.1[6-9]|172\.2\d|172\.3[01])\.\d{1,3}\.\d{1,3}/g,
+    test: (code) => {
+      const hasOPC = /opc|node_id|browse_name|namespace/i.test(code);
+      const hasDirectAddr = /(?:192\.168|10\.0)\.\d+\.\d+|register\s*\[\s*\d+\s*\]/i.test(code);
+      return hasDirectAddr && !hasOPC;
+    },
+    standards: ["OPC-UA"]
+  },
+
+  // ── Sparkplug ──────────────────────────────────────────────
+  {
+    id: "SPK-001", std: "Sparkplug", sev: "error",
+    name: "Missing NBIRTH before NDATA",
+    desc: "Sparkplug Rule R1: NBIRTH must be sent before any NDATA. The birth certificate establishes the metric list.",
+    test: (code) => {
+      const hasNDATA = /NDATA|node.*data|publish.*data/i.test(code);
+      const hasNBIRTH = /NBIRTH|node.*birth|birth.*certificate/i.test(code);
+      return hasNDATA && !hasNBIRTH;
+    },
+    standards: ["Sparkplug"]
+  },
+  {
+    id: "SPK-002", std: "Sparkplug", sev: "warn",
+    name: "No Last Will and Testament configured",
+    desc: "Sparkplug Rule R3: MQTT LWT must be configured for NDEATH messages to detect node disconnection.",
+    test: (code) => {
+      const hasMQTT = /mqtt|sparkplug|publish|subscribe/i.test(code);
+      const hasLWT = /lwt|last.*will|testament|ndeath|will.*topic/i.test(code);
+      return hasMQTT && !hasLWT;
+    },
+    standards: ["Sparkplug"]
+  },
+
+  // ── Modbus ─────────────────────────────────────────────────
+  {
+    id: "MOD-001", std: "Modbus", sev: "warn",
+    name: "No byte order specified for multi-register values",
+    desc: "Modbus 32-bit values span 2 registers. Byte order (ABCD/CDAB/BADC/DCBA) must be explicitly specified — devices vary.",
+    fix: "Specify byte_order explicitly: ABCD (big-endian), CDAB (word-swapped), etc.",
+    test: (code) => {
+      const hasModbus = /modbus|register|holding.*reg|coil/i.test(code);
+      const hasMultiReg = /int32|uint32|float32|float|double|int64/i.test(code);
+      const hasByteOrder = /byte.*order|endian|ABCD|CDAB|BADC|DCBA|swap/i.test(code);
+      return hasModbus && hasMultiReg && !hasByteOrder;
+    },
+    standards: ["Modbus"]
+  },
+
+  // ── KPIs ───────────────────────────────────────────────────
+  {
+    id: "KPI-001", std: "KPI", sev: "info",
+    name: "OEE calculation incomplete",
+    desc: "OEE = Availability × Performance × Quality. All three factors must be calculated. Target: >85%.",
+    test: (code) => {
+      const hasOEE = /oee|overall.*equipment.*effectiveness/i.test(code);
+      const hasAll3 = /availability/i.test(code) && /performance/i.test(code) && /quality/i.test(code);
+      return hasOEE && !hasAll3;
+    },
+    standards: ["KPI"]
+  },
+
+  // ── ACG Manifesto ──────────────────────────────────────────
+  {
+    id: "ACG-001", std: "ACG", sev: "error",
+    name: "AI output used without verification",
+    desc: "ACG Principle 2 (Demanding Quality): AI-generated outputs must be verified before use in production. No raw AI output should flow to users or systems unchecked.",
+    fix: "Add verification step: validate AI output against known-good reference, schema, or human review before use.",
+    test: (code) => {
+      const hasAI = /ai_model|llm|predict|generate|completion|inference|openai|anthropic|gpt|claude/i.test(code);
+      const hasVerify = /verif|validat|check|assert|test|review|confirm|sanitize|schema/i.test(code);
+      const hasReturn = /return|yield|send|respond|output|result/i.test(code);
+      return hasAI && hasReturn && !hasVerify;
+    },
+    standards: ["ACG"]
+  },
+  {
+    id: "ACG-002", std: "ACG", sev: "error",
+    name: "No input validation on user data",
+    desc: "ACG Principle 3 (Safety & Security): All external inputs must be validated. AI systems must have the same security standards as traditional software.",
+    fix: "Validate and sanitize all user inputs before processing. Use schema validation, type checking, and bounds checking.",
+    test: (code) => {
+      const hasInput = /request\.|user.*input|form.*data|body\.|params\.|argv|stdin|input\s*\(/i.test(code);
+      const hasValidation = /validat|sanitiz|escape|check|schema|assert|isinstance|type.*check|zod|yup|joi/i.test(code);
+      return hasInput && !hasValidation;
+    },
+    standards: ["ACG"]
+  },
+  {
+    id: "ACG-003", std: "ACG", sev: "warn",
+    name: "AI involvement not disclosed to user",
+    desc: "ACG Principle 5 (Informed Consent): Users must know when AI is involved in generating content or making decisions. Transparency is not optional.",
+    fix: "Add clear disclosure: 'This content was generated/assisted by AI' or similar transparency notice.",
+    test: (code) => {
+      const hasAI = /ai_model|llm|predict|generate|completion|gpt|claude|inference/i.test(code);
+      const hasUserFacing = /response|reply|send|render|display|output.*user|return.*html/i.test(code);
+      const hasDisclosure = /ai.*generat|generated.*ai|powered.*ai|ai.*assist|disclos|transparen|label.*ai/i.test(code);
+      return hasAI && hasUserFacing && !hasDisclosure;
+    },
+    standards: ["ACG"]
+  },
+  {
+    id: "ACG-004", std: "ACG", sev: "warn",
+    name: "No error handling for AI failures",
+    desc: "ACG Principle 3 (Safety): AI systems can fail unpredictably. Graceful degradation and fallback paths must be implemented.",
+    fix: "Wrap AI calls in try/catch with meaningful fallback behavior. Don't let AI failures cascade.",
+    test: (code) => {
+      const hasAI = /ai_model|llm|predict|generate|completion|inference|openai|anthropic/i.test(code);
+      const hasErrorHandling = /try|catch|except|error.*handl|fallback|retry|timeout/i.test(code);
+      return hasAI && !hasErrorHandling;
+    },
+    standards: ["ACG"]
+  },
+  {
+    id: "ACG-005", std: "ACG", sev: "error",
+    name: "Logging PII or sensitive data",
+    desc: "ACG Principle 4 (Protecting Humans): Never log personally identifiable information. AI training data and inference logs must be scrubbed.",
+    pattern: /(?:log|print|console\.log|logger)\s*\(.*(?:password|secret|token|ssn|credit.*card|email.*address)/gi,
+    standards: ["ACG"]
+  },
+  {
+    id: "ACG-006", std: "ACG", sev: "info",
+    name: "No rate limiting on AI endpoint",
+    desc: "ACG Principle 3 (Safety): AI endpoints without rate limiting can be abused. Protect against resource exhaustion.",
+    test: (code) => {
+      const hasEndpoint = /route|endpoint|api|express|flask|fastapi|app\.(get|post|put)/i.test(code);
+      const hasAI = /ai|llm|model|predict|generate|completion/i.test(code);
+      const hasRateLimit = /rate.*limit|throttl|quota|token.*bucket|sliding.*window/i.test(code);
+      return hasEndpoint && hasAI && !hasRateLimit;
+    },
+    standards: ["ACG"]
+  }
+];
+
+// ============================================================
+// Static Analysis Engine
+// ============================================================
+
+function getActiveStandards() {
+  const checks = document.querySelectorAll('.std-tag input');
+  const active = new Set();
+  checks.forEach(c => { if (c.checked) active.add(c.value); });
+  return active;
+}
+
+function runStaticAnalysis(code) {
+  const active = getActiveStandards();
+  const findings = [];
+  const rulesChecked = new Set();
+
+  for (const rule of RULES) {
+    // Check if any of the rule's standards are active
+    const ruleStds = rule.standards || [rule.std];
+    const relevant = ruleStds.some(s => active.has(s));
+    if (!relevant) continue;
+    rulesChecked.add(rule.id);
+
+    let triggered = false;
+
+    // Pattern-based check
+    if (rule.pattern) {
+      const matches = code.match(rule.pattern);
+      if (matches) {
+        // If there's an antiPattern, check if it's present (should NOT be)
+        if (rule.antiPattern) {
+          // Check surrounding context for the antipattern
+          if (!rule.antiPattern.test(code)) {
+            triggered = true;
+          }
+        } else {
+          triggered = true;
+        }
+      }
+    }
+
+    // Function-based test
+    if (!triggered && rule.test) {
+      triggered = rule.test(code);
+    }
+
+    if (triggered) {
+      findings.push({
+        id: rule.id,
+        std: rule.std,
+        sev: rule.sev,
+        name: rule.name,
+        desc: rule.desc,
+        fix: rule.fix || null
+      });
+    }
+  }
+
+  return { findings, rulesChecked: rulesChecked.size };
+}
+
+// ============================================================
+// UI
+// ============================================================
+
+const $ = s => document.getElementById(s);
+const CODE = $("code-input"), RESULTS = $("results"), ST = $("st"),
+      PW = $("pbw"), PB = $("pb"), MS = $("ms"),
+      STATIC_BTN = $("static-btn"), DEEP_BTN = $("deep-btn");
+
+let E = null;
+
+// WebGPU check
+if (!navigator.gpu) {
+  $("no-gpu").style.display = "block";
+  DEEP_BTN.disabled = true;
+}
+
+// Standard tag toggles
+document.querySelectorAll('.std-tag').forEach(tag => {
+  tag.addEventListener('click', (e) => {
+    if (e.target.tagName === 'INPUT') return; // let checkbox handle it
+    const cb = tag.querySelector('input');
+    cb.checked = !cb.checked;
+    tag.classList.toggle('active', cb.checked);
+  });
+  const cb = tag.querySelector('input');
+  cb.addEventListener('change', () => {
+    tag.classList.toggle('active', cb.checked);
+  });
+});
+
+function renderFindings(findings, rulesChecked, llmAnalysis) {
+  RESULTS.innerHTML = "";
+
+  if (findings.length === 0 && !llmAnalysis) {
+    RESULTS.innerHTML = `<div class="empty"><div class="icon">✓</div>No violations found across ${rulesChecked} rules checked.<br>Your code looks standards-compliant.</div>`;
+    $("summary").style.display = "block";
+    $("cnt-err").textContent = "0";
+    $("cnt-warn").textContent = "0";
+    $("cnt-info").textContent = "0";
+    $("cnt-rules").textContent = rulesChecked;
+    const grade = $("grade");
+    grade.textContent = "COMPLIANT";
+    grade.className = "grade grade-pass";
+    $("result-count").textContent = "";
+    return;
+  }
+
+  // Sort: fatal→error→warn→info
+  const sevOrder = { fatal: 0, error: 1, warn: 2, info: 3 };
+  findings.sort((a, b) => (sevOrder[a.sev] || 3) - (sevOrder[b.sev] || 3));
+
+  // Counts
+  const counts = { fatal: 0, error: 0, warn: 0, info: 0 };
+  findings.forEach(f => counts[f.sev] = (counts[f.sev] || 0) + 1);
+  const errCount = counts.fatal + counts.error;
+
+  $("summary").style.display = "block";
+  $("cnt-err").textContent = errCount;
+  $("cnt-warn").textContent = counts.warn;
+  $("cnt-info").textContent = counts.info;
+  $("cnt-rules").textContent = rulesChecked;
+  $("result-count").textContent = `${findings.length} finding${findings.length !== 1 ? 's' : ''}`;
+
+  const grade = $("grade");
+  if (errCount > 0) { grade.textContent = "NON-COMPLIANT"; grade.className = "grade grade-fail"; }
+  else if (counts.warn > 0) { grade.textContent = "NEEDS REVIEW"; grade.className = "grade grade-warn"; }
+  else { grade.textContent = "COMPLIANT"; grade.className = "grade grade-pass"; }
+
+  // Render findings
+  for (const f of findings) {
+    const item = document.createElement("div");
+    item.className = "r-item";
+    item.innerHTML = `
+      <div class="r-hdr">
+        <span class="sev sev-${f.sev}">${f.sev}</span>
+        <span class="r-rule">${f.id}</span>
+        <span class="r-msg">${esc(f.name)}</span>
+        <span class="r-std">${f.std}</span>
+      </div>
+      <div class="r-body" style="display:none">
+        ${esc(f.desc)}
+        ${f.fix ? `<div class="r-fix">Fix: ${esc(f.fix)}</div>` : ''}
+      </div>`;
+    item.querySelector('.r-hdr').addEventListener('click', () => {
+      const body = item.querySelector('.r-body');
+      body.style.display = body.style.display === 'none' ? 'block' : 'none';
+    });
+    RESULTS.appendChild(item);
+  }
+
+  // LLM analysis section
+  if (llmAnalysis) {
+    const section = document.createElement("div");
+    section.className = "llm-section";
+    section.innerHTML = `
+      <div class="llm-hdr">⚒ Deep Analysis (AI-powered)</div>
+      <div class="llm-analysis">${esc(llmAnalysis)}</div>`;
+    RESULTS.appendChild(section);
+  }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Static Scan ──────────────────────────────────────────────
+STATIC_BTN.addEventListener("click", () => {
+  const code = CODE.value.trim();
+  if (!code) { ST.textContent = "No code to scan"; return; }
+
+  ST.textContent = "Running static analysis…";
+  STATIC_BTN.disabled = true;
+
+  // Use requestAnimationFrame to let UI update
+  requestAnimationFrame(() => {
+    const { findings, rulesChecked } = runStaticAnalysis(code);
+    renderFindings(findings, rulesChecked, null);
+    ST.textContent = `✓ Static scan complete — ${findings.length} finding${findings.length !== 1 ? 's' : ''} across ${rulesChecked} rules`;
+    STATIC_BTN.disabled = false;
+  });
+});
+
+// ── Deep Scan (WebLLM) ──────────────────────────────────────
+const SCANNER_SYS = `You are KONOMI, the ACG Guild's standards compliance scanner. You analyze code against industrial standards (ISA-95, ISA-88, ISA-101, ISA-18.2, OPC-UA) and the ACG Manifesto.
+
+Your task: Given code + static analysis findings, provide a brief expert assessment:
+1. Are the static findings accurate? Any false positives?
+2. What semantic issues did static analysis miss?
+3. Architecture-level concerns?
+4. One specific, actionable improvement.
+
+Be concise: 3-5 sentences max. Direct, technical, no fluff. Reference specific standards by ID.`;
+
+async function loadEngine() {
+  if (E) return true;
+  const model = MS.value;
+  ST.textContent = `Downloading ${model}…`;
+  PW.style.display = "block"; PB.style.width = "0%";
+  MS.disabled = true; DEEP_BTN.disabled = true; STATIC_BTN.disabled = true;
+  try {
+    E = await W.CreateMLCEngine(model, {
+      initProgressCallback: (p) => {
+        ST.textContent = p.text || "Loading…";
+        if (p.progress) PB.style.width = (p.progress * 100) + "%";
+      }
+    });
+    PW.style.display = "none";
+    MS.disabled = false; DEEP_BTN.disabled = false; STATIC_BTN.disabled = false;
+    return true;
+  } catch (e) {
+    ST.textContent = "Error loading model: " + e.message;
+    PW.style.display = "none";
+    MS.disabled = false; DEEP_BTN.disabled = false; STATIC_BTN.disabled = false;
+    return false;
+  }
+}
+
+DEEP_BTN.addEventListener("click", async () => {
+  const code = CODE.value.trim();
+  if (!code) { ST.textContent = "No code to scan"; return; }
+
+  // Run static first
+  const { findings, rulesChecked } = runStaticAnalysis(code);
+
+  // Load engine
+  DEEP_BTN.disabled = true; STATIC_BTN.disabled = true;
+  const ok = await loadEngine();
+  if (!ok) { DEEP_BTN.disabled = false; STATIC_BTN.disabled = false; return; }
+
+  ST.textContent = "Running deep analysis…";
+
+  // Build prompt for LLM
+  const activeStds = [...getActiveStandards()].join(", ");
+  const findingSummary = findings.length > 0
+    ? findings.map(f => `[${f.sev}] ${f.id}: ${f.name}`).join("\n")
+    : "No static violations found.";
+
+  const prompt = `Analyze this code against standards: ${activeStds}
+
+CODE:
+${code.substring(0, 800)}
+
+STATIC FINDINGS:
+${findingSummary}
+
+Give your expert assessment (3-5 sentences):`;
+
+  // Render static findings first
+  renderFindings(findings, rulesChecked, "Analyzing…");
+
+  // Stream LLM response
+  const analysisEl = RESULTS.querySelector('.llm-analysis');
+  let llmText = "";
+
+  try {
+    const stream = await E.chat.completions.create({
+      messages: [
+        { role: "system", content: SCANNER_SYS },
+        { role: "user", content: prompt }
+      ],
+      stream: true,
+      max_tokens: 256,
+      temperature: 0.5
+    });
+    for await (const chunk of stream) {
+      llmText += (chunk.choices[0]?.delta?.content || "");
+      analysisEl.textContent = llmText;
+    }
+  } catch (e) {
+    llmText = "Deep analysis failed: " + e.message;
+    analysisEl.textContent = llmText;
+  }
+
+  ST.textContent = `✓ Deep scan complete — ${findings.length} static findings + AI analysis`;
+  DEEP_BTN.disabled = false; STATIC_BTN.disabled = false;
+});
+
+// Model change resets engine
+MS.addEventListener("change", () => {
+  E = null;
+  ST.textContent = "Model changed — will download on next deep scan";
+});
+</script>
+</body>
+</html>
