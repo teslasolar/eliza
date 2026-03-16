@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sandbox Voice — Call ACG Tools by Voice</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Crimson+Pro:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0d0f;--s1:#111518;--s2:#1a1f24;--br:#2a3038;--grn:#4ae08a;--grn2:#2cb866;--grnd:rgba(74,224,138,.08);--amb:#d4883a;--amb2:#e9a45c;--ambd:rgba(212,136,58,.06);--red:#e05555;--blu:#5b9bd5;--cyn:#4ad4e0;--t:#c8cdd3;--td:#6b7280;--tb:#eef0f2;--fm:'IBM Plex Mono',monospace;--fs:'Crimson Pro',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t);font-family:var(--fm);min-height:100vh;display:flex;flex-direction:column}
+
+.hdr{text-align:center;padding:1.8rem 1rem 1.2rem;border-bottom:1px solid var(--br);background:linear-gradient(180deg,#0f1317,var(--bg));position:relative}
+.hdr::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:200px;height:2px;background:linear-gradient(90deg,transparent,var(--cyn),transparent)}
+.hdr .badge{display:inline-block;border:1px solid var(--cyn);color:var(--cyn);font-size:.6rem;padding:.15rem .5rem;border-radius:1rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.5rem}
+.hdr h1{font-size:clamp(1.4rem,3.5vw,2rem);font-weight:600;color:var(--tb);letter-spacing:.15em}
+.hdr h1 span{color:var(--cyn)}
+.hdr .sub{font-family:var(--fs);font-size:.95rem;color:var(--td);font-style:italic;max-width:34rem;margin:.3rem auto 0}
+.hdr .nav{margin-top:.6rem;font-size:.6rem}
+.hdr .nav a{color:var(--grn);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;margin:0 .5rem}
+
+/* Voice button */
+.voice-area{display:flex;flex-direction:column;align-items:center;padding:1.5rem;gap:.8rem}
+.mic-btn{width:100px;height:100px;border-radius:50%;border:3px solid var(--cyn);background:var(--s1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:2.2rem;transition:all .3s;position:relative}
+.mic-btn:hover{background:var(--s2);border-color:var(--grn)}
+.mic-btn.listening{border-color:var(--red);background:rgba(224,85,85,.12);animation:pulse-mic 1.5s infinite}
+.mic-btn.listening::after{content:'';position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--red);animation:ring 1.5s infinite}
+@keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(224,85,85,.4)}50%{box-shadow:0 0 0 16px rgba(224,85,85,0)}}
+@keyframes ring{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.3);opacity:0}}
+.mic-label{font-size:.7rem;color:var(--td);text-transform:uppercase;letter-spacing:.12em}
+.mic-label.active{color:var(--red)}
+
+/* Transcript */
+#transcript{font-family:var(--fs);font-size:1rem;color:var(--tb);text-align:center;min-height:1.8rem;max-width:40rem;line-height:1.5;padding:0 1rem}
+
+/* Status */
+.sbar{font-size:.68rem;text-align:center;padding:.35rem 1rem;color:var(--td);border-bottom:1px solid var(--br)}
+
+/* Tool picker */
+.tools-bar{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:center;padding:.6rem 1rem;background:var(--s1);border-bottom:1px solid var(--br)}
+.tool-chip{background:var(--s2);border:1px solid var(--br);border-radius:1rem;padding:.3rem .7rem;font-size:.62rem;color:var(--cyn);cursor:pointer;transition:all .2s;letter-spacing:.04em}
+.tool-chip:hover,.tool-chip.active{background:rgba(74,212,224,.1);border-color:var(--cyn)}
+.tool-chip.active{color:var(--tb);font-weight:600}
+
+/* Results log */
+#log{flex:1;overflow-y:auto;padding:1rem;max-width:56rem;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:.8rem}
+.entry{animation:fi .35s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.entry.cmd{border-left:2px solid var(--cyn);padding:.5rem .8rem;background:var(--s1);border-radius:0 .4rem .4rem 0}
+.entry.cmd .lbl{font-size:.55rem;color:var(--cyn);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.2rem}
+.entry.cmd .args{font-size:.7rem;color:var(--td);margin-top:.15rem}
+.entry.res{border-left:2px solid var(--grn);padding:.5rem .8rem}
+.entry.res .lbl{font-size:.55rem;color:var(--grn);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.2rem}
+.entry.res pre{font-size:.75rem;color:var(--tb);white-space:pre-wrap;word-break:break-word;line-height:1.5}
+.entry.err{border-left:2px solid var(--red);padding:.5rem .8rem}
+.entry.err .lbl{font-size:.55rem;color:var(--red);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.2rem}
+.entry.you{align-self:flex-end;max-width:80%;background:var(--s2);border:1px solid var(--br);padding:.5rem .8rem;border-radius:.6rem .6rem .15rem .6rem;color:var(--tb);font-family:var(--fs);font-size:.9rem}
+
+/* Text input fallback */
+#ia{border-top:1px solid var(--br);background:var(--s1);padding:.7rem 1rem}
+#iw{max-width:56rem;margin:0 auto;display:flex;gap:.4rem}
+#ui{flex:1;background:var(--bg);border:1px solid var(--br);border-radius:.4rem;padding:.55rem .8rem;color:var(--tb);font-family:var(--fm);font-size:.82rem;outline:none;transition:border-color .2s}
+#ui:focus{border-color:var(--cyn)}#ui::placeholder{color:var(--td)}
+#sb{background:var(--cyn);color:var(--bg);border:none;border-radius:.4rem;padding:.55rem 1rem;font-family:var(--fm);font-size:.7rem;font-weight:600;cursor:pointer;text-transform:uppercase;transition:all .2s}
+#sb:hover{filter:brightness(1.15)}
+
+footer{text-align:center;padding:.4rem;font-size:.5rem;color:var(--td);border-top:1px solid var(--br)}
+footer a{color:var(--grn);text-decoration:none}
+
+#log::-webkit-scrollbar{width:4px}#log::-webkit-scrollbar-track{background:var(--bg)}#log::-webkit-scrollbar-thumb{background:var(--br);border-radius:2px}
+
+/* TTS indicator */
+.speaking{display:none;align-items:center;gap:.4rem;padding:.3rem .6rem;background:rgba(74,224,138,.06);border:1px solid var(--grn);border-radius:1rem;font-size:.6rem;color:var(--grn);text-transform:uppercase;letter-spacing:.1em}
+.speaking.active{display:inline-flex}
+.speaking .dot{width:5px;height:5px;background:var(--grn);border-radius:50%;animation:blink .8s infinite alternate}
+.speaking .dot:nth-child(2){animation-delay:.2s}.speaking .dot:nth-child(3){animation-delay:.4s}
+@keyframes blink{from{opacity:.3}to{opacity:1}}
+
+@media(prefers-reduced-motion:reduce){.mic-btn.listening{animation:none}.mic-btn.listening::after{animation:none}.speaking .dot{animation:none}}
+@media(max-width:600px){.hdr h1{font-size:1.4rem}.mic-btn{width:80px;height:80px;font-size:1.8rem}.tool-chip{font-size:.55rem}}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="badge">Voice-Activated Tool Environment</div>
+  <h1><span>Sandbox</span> Voice</h1>
+  <div class="sub">Speak to call ACG tools — principle lookup, alignment check, scenario generation, and more</div>
+  <div class="nav"><a href="../">Home</a> <a href="../eliza/">ELIZA</a> <a href="./">Sandbox</a> <a href="../konomi/">KONOMI</a></div>
+</header>
+
+<div class="tools-bar" id="tool-bar"></div>
+
+<div class="voice-area">
+  <button class="mic-btn" id="mic" aria-label="Press to speak">🎤</button>
+  <div class="mic-label" id="mic-label">Press to speak</div>
+  <div class="speaking" id="speaking"><div class="dot"></div><div class="dot"></div><div class="dot"></div> Speaking</div>
+  <div id="transcript"></div>
+</div>
+
+<div class="sbar" id="status">Voice sandbox ready — click the mic or type below. All processing is local.</div>
+
+<main id="log" role="log" aria-label="Tool call history" aria-live="polite"></main>
+
+<div id="ia"><div id="iw">
+  <input id="ui" type="text" placeholder="Type a command… e.g. 'look up principle 3' or 'check alignment: we always test AI'" autocomplete="off" aria-label="Text command input"/>
+  <button id="sb" aria-label="Run command">Run</button>
+</div></div>
+
+<footer><a href="../">Home</a> · <a href="./">Sandbox</a> · <a href="../eliza/">ELIZA</a> · ACG Guild Platform · Voice + Text · 100% Local</footer>
+
+<script>
+// ── Tool definitions (mirrors sandbox/tools.py) ──────────────────────
+const TOOLS = [
+  {name:"acg_lookup_principle", desc:"Look up ACG Manifesto principles", params:{number:{type:"string",desc:"Principle number (1-6) or 'all'"}}},
+  {name:"acg_check_alignment", desc:"Score text against ACG principles", params:{text:{type:"string",desc:"Text to analyze",required:true}}},
+  {name:"acg_generate_scenario", desc:"Generate vetting scenario for a phase", params:{phase:{type:"integer",desc:"Phase number 1-6"}}},
+  {name:"acg_hash_response", desc:"Hash a vetting response", params:{text:{type:"string",desc:"Response text",required:true}}},
+  {name:"konomi_query", desc:"Query konomi standards", params:{query:{type:"string",desc:"Search keyword",required:true}}},
+  {name:"konomi_factory_status", desc:"Factory tag status", params:{}},
+];
+
+// ── Tool implementations (client-side, same logic as Python) ─────────
+const PRINCIPLES = {
+  "1":{name:"Embracing Innovation",summary:"Explore AI, recognize potential, but verify independently."},
+  "2":{name:"Demanding Quality",summary:"Rigorous verification, testing, validation before production."},
+  "3":{name:"Ensuring Safety",summary:"Proper harnesses for quality, safety, security, legal liability."},
+  "4":{name:"Protecting Humans",summary:"Psychological safety. Human interests above convenience."},
+  "5":{name:"Informed Consent",summary:"AI use not hidden. Users know when AI influences outcomes."},
+  "6":{name:"Right to Refuse",summary:"Refuse unsafe, deceptive, unverifiable AI. Ethical obligation."},
+};
+
+const SCENARIOS = {
+  1:"Your team discovers an AI tool that claims 10x productivity. The vendor offers a free trial but no technical documentation. What do you do?",
+  2:"A developer submits AI-generated code that passes all unit tests but nobody on the team has reviewed the logic. Ship it?",
+  3:"Your AI-powered monitoring system has a known false-positive rate of 2%. A safety-critical alert just fired. How do you respond?",
+  4:"A colleague reports feeling anxious about AI replacing their role. Management says to ignore it and focus on delivery. Your move?",
+  5:"Marketing wants to add AI-powered personalization without updating the privacy policy. The feature launches Monday. What do you say?",
+  6:"Your client insists on deploying an AI model you know has bias issues. They threaten to find another vendor. What do you do?",
+};
+
+function runTool(name, args) {
+  switch(name) {
+    case "acg_lookup_principle": {
+      const n = String(args.number || "all");
+      if (n === "all") return PRINCIPLES;
+      return PRINCIPLES[n] || {error:`Principle ${n} not found (1-6)`};
+    }
+    case "acg_check_alignment": {
+      const text = (args.text || "").toLowerCase();
+      const kw = {
+        innovation:["explore","verify","independent","evidence"],
+        quality:["test","validate","review","rigorous","standard"],
+        safety:["secure","safe","harness","liability","protect"],
+        human:["human","people","psychological","wellbeing","care"],
+        consent:["transparent","disclose","inform","consent","know"],
+        refuse:["refuse","decline","ethical","obligation","no"],
+      };
+      const scores = {};
+      for (const [k,words] of Object.entries(kw)) {
+        const hits = words.filter(w => text.includes(w)).length;
+        scores[k] = Math.min(hits / words.length, 1.0);
+      }
+      const avg = Object.values(scores).reduce((a,b)=>a+b,0) / Object.keys(scores).length;
+      return {scores, overall:Math.round(avg*100)/100, aligned:avg>=0.3};
+    }
+    case "acg_generate_scenario": {
+      const phase = parseInt(args.phase) || 1;
+      return {phase, scenario: SCENARIOS[phase] || "Describe a situation where ethical AI practices matter."};
+    }
+    case "acg_hash_response": {
+      const text = args.text || "";
+      const ts = String(Date.now()/1000);
+      // Simple hash (not crypto-grade, just for demo)
+      let h = 0;
+      const raw = text + ":" + ts;
+      for (let i = 0; i < raw.length; i++) { h = ((h << 5) - h + raw.charCodeAt(i)) | 0; }
+      return {hash: Math.abs(h).toString(16).padStart(8,"0"), timestamp:ts, length:text.length};
+    }
+    case "konomi_query": {
+      const q = (args.query || "").toLowerCase();
+      const pkgs = {
+        meta:"Self-defining meta framework",isa88:"Batch control",isa95:"Enterprise-control integration",
+        isa18:"Alarm management",isa101:"HMI design",opcua:"OPC-UA communication",
+        sparkplug:"Sparkplug B MQTT",modbus:"Modbus field protocol",factory:"Factory simulation",
+        kpi:"Performance metrics",crosswalk:"Cross-standard mapping",scanner:"Compliance scanner",
+        l5x:"L5X PLC compiler",ops:"CLI/API/MCP operations",tags:"Tag system",
+        evgpu:"eVGPU compute",femto:"FemtoLLM tiny model",base:"Base primitives"
+      };
+      const matches = {};
+      for (const [k,v] of Object.entries(pkgs)) {
+        if (k.includes(q) || v.toLowerCase().includes(q)) matches[k] = v;
+      }
+      return Object.keys(matches).length ? {matches} : {matches:{}, hint:"Try: meta, isa88, opcua, tags, l5x"};
+    }
+    case "konomi_factory_status":
+      return {directories:18, total_tags:190, status:"online"};
+    default:
+      return {error:`Unknown tool: ${name}`};
+  }
+}
+
+// ── NLP: parse voice/text into tool calls ────────────────────────────
+function parseCommand(text) {
+  const t = text.toLowerCase().trim();
+
+  // Principle lookup
+  const prinMatch = t.match(/(?:look\s*up|show|get|what(?:'s| is)|tell me about|principle)\s*(?:principle\s*)?(\d|all)/i);
+  if (prinMatch || t.includes("principle") || t.includes("manifesto")) {
+    const num = prinMatch ? prinMatch[1] : "all";
+    return {tool:"acg_lookup_principle", args:{number:num}};
+  }
+  if (/^(?:all )?principles?$/.test(t) || t === "all") {
+    return {tool:"acg_lookup_principle", args:{number:"all"}};
+  }
+
+  // Scenario generation
+  const scenMatch = t.match(/(?:scenario|generate|vetting|phase)\s*(\d)?/i);
+  if (scenMatch) {
+    return {tool:"acg_generate_scenario", args:{phase:scenMatch[1] || "1"}};
+  }
+
+  // Factory status
+  if (t.includes("factory") || t.includes("status") || t.includes("tag")) {
+    return {tool:"konomi_factory_status", args:{}};
+  }
+
+  // Konomi query
+  const queryMatch = t.match(/(?:query|search|find|look for|konomi)\s+(.+)/i);
+  if (queryMatch) {
+    return {tool:"konomi_query", args:{query:queryMatch[1].trim()}};
+  }
+
+  // Alignment check — catch-all with "check", "align", "score"
+  const alignMatch = t.match(/(?:check|align|score|analyze|assess)\s*(?:alignment)?:?\s*(.*)/i);
+  if (alignMatch && alignMatch[1].trim()) {
+    return {tool:"acg_check_alignment", args:{text:alignMatch[1].trim()}};
+  }
+
+  // Hash
+  const hashMatch = t.match(/hash\s*:?\s*(.*)/i);
+  if (hashMatch && hashMatch[1].trim()) {
+    return {tool:"acg_hash_response", args:{text:hashMatch[1].trim()}};
+  }
+
+  // If nothing matched, try alignment check with full text
+  if (t.length > 10) {
+    return {tool:"acg_check_alignment", args:{text:t}};
+  }
+
+  return null;
+}
+
+// ── UI ───────────────────────────────────────────────────────────────
+const $ = s => document.getElementById(s);
+const LOG = $("log");
+
+function addEntry(type, content) {
+  const d = document.createElement("div");
+  d.className = "entry " + type;
+  d.innerHTML = content;
+  LOG.appendChild(d);
+  LOG.scrollTop = LOG.scrollHeight;
+  return d;
+}
+
+// Render tool chips
+const bar = $("tool-bar");
+TOOLS.forEach(t => {
+  const chip = document.createElement("button");
+  chip.className = "tool-chip";
+  chip.textContent = t.name.replace(/^acg_|^konomi_/,"");
+  chip.title = t.desc;
+  chip.addEventListener("click", () => {
+    // Quick-call with defaults
+    const defaults = {
+      acg_lookup_principle:{number:"all"},
+      acg_check_alignment:{text:"We test AI rigorously and protect human safety"},
+      acg_generate_scenario:{phase:"1"},
+      acg_hash_response:{text:"Sample response"},
+      konomi_query:{query:"isa88"},
+      konomi_factory_status:{},
+    };
+    execute(t.name, defaults[t.name] || {});
+  });
+  bar.appendChild(chip);
+});
+
+function execute(toolName, args) {
+  // Show the call
+  const tool = TOOLS.find(t => t.name === toolName);
+  const argsStr = Object.entries(args).map(([k,v])=>`${k}: ${v}`).join(", ");
+  addEntry("cmd", `<div class="lbl">Tool Call</div><strong>${toolName}</strong><div class="args">${argsStr || "(no args)"}</div>`);
+
+  // Highlight chip
+  bar.querySelectorAll(".tool-chip").forEach(c => c.classList.remove("active"));
+  const idx = TOOLS.findIndex(t => t.name === toolName);
+  if (idx >= 0) bar.children[idx].classList.add("active");
+
+  // Run
+  try {
+    const result = runTool(toolName, args);
+    const json = JSON.stringify(result, null, 2);
+    addEntry("res", `<div class="lbl">Result</div><pre>${escHtml(json)}</pre>`);
+    speak(summarize(toolName, result));
+  } catch(e) {
+    addEntry("err", `<div class="lbl">Error</div><pre>${escHtml(e.message)}</pre>`);
+  }
+
+  $("status").textContent = `Ran ${toolName}`;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── Summarize result for TTS ─────────────────────────────────────────
+function summarize(tool, result) {
+  switch(tool) {
+    case "acg_lookup_principle":
+      if (result.name) return `Principle: ${result.name}. ${result.summary}`;
+      if (result.error) return result.error;
+      return Object.entries(result).map(([k,v])=>`${k}: ${v.name}`).join(". ");
+    case "acg_check_alignment":
+      return `Overall alignment score: ${Math.round(result.overall*100)}%. ${result.aligned ? "Aligned." : "Not aligned."}`;
+    case "acg_generate_scenario":
+      return `Phase ${result.phase} scenario: ${result.scenario}`;
+    case "acg_hash_response":
+      return `Response hashed. Hash: ${result.hash}. Length: ${result.length} characters.`;
+    case "konomi_query":
+      const m = result.matches || {};
+      const keys = Object.keys(m);
+      return keys.length ? `Found ${keys.length} match${keys.length>1?"es":""}: ${keys.join(", ")}` : "No matches found.";
+    case "konomi_factory_status":
+      return `Factory ${result.status}. ${result.directories} directories, ${result.total_tags} total tags.`;
+    default:
+      return "Done.";
+  }
+}
+
+// ── Process input (voice or text) ────────────────────────────────────
+function processInput(text) {
+  if (!text.trim()) return;
+  addEntry("you", text);
+
+  const parsed = parseCommand(text);
+  if (parsed) {
+    execute(parsed.tool, parsed.args);
+  } else {
+    addEntry("err", `<div class="lbl">Parse Error</div><pre>Could not understand: "${escHtml(text)}"\nTry: "look up principle 3", "scenario 2", "factory status", "query isa88"</pre>`);
+  }
+}
+
+// ── Voice: Web Speech API ────────────────────────────────────────────
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let listening = false;
+
+const mic = $("mic");
+const micLabel = $("mic-label");
+const transcript = $("transcript");
+
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  recognition.onstart = () => {
+    listening = true;
+    mic.classList.add("listening");
+    micLabel.textContent = "Listening…";
+    micLabel.classList.add("active");
+    transcript.textContent = "";
+  };
+
+  recognition.onresult = (e) => {
+    let interim = "", final = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        final += e.results[i][0].transcript;
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    transcript.textContent = final || interim;
+    if (final) {
+      processInput(final.trim());
+    }
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error !== "aborted") {
+      $("status").textContent = `Voice error: ${e.error}`;
+    }
+    stopListening();
+  };
+
+  recognition.onend = () => {
+    stopListening();
+  };
+} else {
+  mic.style.opacity = ".3";
+  mic.style.cursor = "not-allowed";
+  micLabel.textContent = "Voice not supported — use text input";
+  $("status").textContent = "Speech recognition not available in this browser. Use text input below.";
+}
+
+function startListening() {
+  if (!recognition) return;
+  try {
+    recognition.start();
+  } catch(e) {
+    // Already started
+  }
+}
+
+function stopListening() {
+  listening = false;
+  mic.classList.remove("listening");
+  micLabel.textContent = "Press to speak";
+  micLabel.classList.remove("active");
+}
+
+mic.addEventListener("click", () => {
+  if (!recognition) return;
+  if (listening) {
+    recognition.stop();
+  } else {
+    startListening();
+  }
+});
+
+// ── TTS: speak results ───────────────────────────────────────────────
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.05;
+  u.pitch = 0.95;
+  const sp = $("speaking");
+  u.onstart = () => sp.classList.add("active");
+  u.onend = () => sp.classList.remove("active");
+  u.onerror = () => sp.classList.remove("active");
+  window.speechSynthesis.speak(u);
+}
+
+// ── Text input fallback ──────────────────────────────────────────────
+$("sb").addEventListener("click", () => {
+  processInput($("ui").value);
+  $("ui").value = "";
+});
+$("ui").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    processInput($("ui").value);
+    $("ui").value = "";
+  }
+});
+
+// ── Keyboard shortcut: space to toggle mic ───────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && document.activeElement !== $("ui")) {
+    e.preventDefault();
+    mic.click();
+  }
+});
+
+// ── Welcome message ──────────────────────────────────────────────────
+addEntry("res", `<div class="lbl">Sandbox Ready</div><pre>Voice-activated ACG tool sandbox.
+Say or type commands like:
+  "Look up principle 3"
+  "Generate scenario for phase 2"
+  "Check alignment: we test AI and protect humans"
+  "Factory status"
+  "Query ISA-88"
+
+Press spacebar or click the mic to start.</pre>`);
+</script>
+</body>
+</html>
