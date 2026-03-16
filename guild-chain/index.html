@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACG-KCC Guild Chain</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Crimson+Pro:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0d0f;--s1:#111518;--s2:#1a1f24;--br:#2a3038;--grn:#4ae08a;--grn2:#2cb866;--amb:#d4883a;--amb2:#e9a45c;--red:#e05555;--blu:#5b9bd5;--cyn:#4ad4e0;--gld:#fbbf24;--t:#c8cdd3;--td:#6b7280;--tb:#eef0f2;--fm:'IBM Plex Mono',monospace;--fs:'Crimson Pro',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t);font-family:var(--fm);min-height:100vh;display:flex;flex-direction:column}
+.hdr{text-align:center;padding:2rem 1rem 1.4rem;border-bottom:1px solid var(--br);background:linear-gradient(180deg,#0f1317,var(--bg));position:relative}
+.hdr::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:200px;height:2px;background:linear-gradient(90deg,transparent,var(--gld),transparent)}
+.hdr .badge{display:inline-block;border:1px solid var(--gld);color:var(--gld);font-size:.6rem;padding:.15rem .5rem;border-radius:1rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.5rem}
+.hdr h1{font-size:clamp(1.3rem,3.5vw,2rem);font-weight:600;color:var(--tb);letter-spacing:.12em}
+.hdr h1 span{color:var(--gld)}
+.hdr .sub{font-family:var(--fs);font-size:.92rem;color:var(--td);font-style:italic;max-width:36rem;margin:.3rem auto 0}
+.hdr .nav{margin-top:.6rem;font-size:.6rem}
+.hdr .nav a{color:var(--grn);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;margin:0 .5rem}
+main{flex:1;max-width:60rem;width:100%;margin:0 auto;padding:1.5rem}
+.quote{text-align:center;font-family:var(--fs);font-style:italic;color:var(--gld);font-size:1rem;padding:1.2rem;border:1px dashed rgba(251,191,36,.2);border-radius:.4rem;margin-bottom:1.5rem}
+.sec{margin-bottom:1.8rem}
+.sec h2{font-size:.65rem;color:var(--td);text-transform:uppercase;letter-spacing:.15em;margin-bottom:.6rem;padding-bottom:.3rem;border-bottom:1px solid var(--br)}
+.stats{display:flex;gap:1.2rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.stat{text-align:center;flex:1;min-width:5rem}
+.stat .sv{font-size:1.4rem;font-weight:600;color:var(--gld)}
+.stat .sl{font-size:.5rem;color:var(--td);text-transform:uppercase;letter-spacing:.1em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(16rem,1fr));gap:.6rem}
+.card{background:var(--s1);border:1px solid var(--br);border-radius:.4rem;padding:.7rem .9rem}
+.card .cn{color:var(--gld);font-weight:600;font-size:.78rem}
+.card .cd{font-family:var(--fs);font-size:.78rem;color:var(--td);margin-top:.15rem}
+.card .ct{font-size:.5rem;color:var(--grn);margin-top:.3rem}
+.layers{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.layer{background:var(--s1);border:1px solid var(--br);border-radius:.4rem;padding:.8rem}
+.layer h3{font-size:.72rem;color:var(--tb);margin-bottom:.3rem}
+.layer .ld{font-family:var(--fs);font-size:.75rem;color:var(--td)}
+.layer .ls{font-size:.6rem;color:var(--gld);margin-top:.3rem}
+footer{text-align:center;padding:.5rem;font-size:.5rem;color:var(--td);border-top:1px solid var(--br)}
+footer a{color:var(--grn);text-decoration:none}
+@media(max-width:600px){.layers{grid-template-columns:1fr}.stats{gap:.6rem}}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="badge">Permissioned PoA/PoS</div>
+  <h1>ACG-KCC <span>Guild Chain</span></h1>
+  <div class="sub">Konomi Cube Coin private fork for AI Craftspeople Guild operations</div>
+  <div class="nav"><a href="../">Home</a> <a href="../eliza/">ELIZA</a> <a href="../konomi/">KONOMI</a> <a href="../sandbox/">Sandbox</a></div>
+</header>
+<main>
+  <div class="quote">"The protected register is on-chain. Good luck retaliating against a blockchain."</div>
+
+  <div class="stats">
+    <div class="stat"><div class="sv">510,510</div><div class="sl">GLD Supply</div></div>
+    <div class="stat"><div class="sv">8</div><div class="sl">Vertex Agents</div></div>
+    <div class="stat"><div class="sv">512</div><div class="sl">Op Slots</div></div>
+    <div class="stat"><div class="sv">6,152</div><div class="sl">Total Agents</div></div>
+    <div class="stat"><div class="sv">15:1</div><div class="sl">Compression</div></div>
+  </div>
+
+  <section class="sec">
+    <h2>Dual-Layer Architecture</h2>
+    <div class="layers">
+      <div class="layer">
+        <h3>Layer 1 — Authority (PoA)</h3>
+        <div class="ld">Permanent record. Refusals, certs, membership, governance. 60s blocks. Raspberry Pi capable.</div>
+        <div class="ls">5-11 authority nodes · Instant finality · 1MB blocks</div>
+      </div>
+      <div class="layer">
+        <h3>Layer 2 — Operations (DPoS)</h3>
+        <div class="ld">Real-time ops. ELIZA sessions, PackML state, events, SLA timers. 5s blocks. 1000 TPS.</div>
+        <div class="ls">100+ GLD stake · 2-block finality · Checkpoints to L1</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Guild Agents (KCC Vertex Remapping)</h2>
+    <div class="grid" id="agents"></div>
+  </section>
+
+  <section class="sec">
+    <h2>Core Contracts</h2>
+    <div class="grid">
+      <div class="card"><div class="cn">EthicalRefusal</div><div class="cd">Protected refusal register. Immediate L1 write. 15-day SLA. Retaliation detection.</div><div class="ct">The spine of the guild</div></div>
+      <div class="card"><div class="cn">VettingSession</div><div class="cd">ELIZA session lifecycle. Transcript hash on-chain, content private. Seal issuance.</div><div class="ct">L2 → checkpoint to L1 on PASS</div></div>
+      <div class="card"><div class="cn">Certification</div><div class="cd">CL-1/CL-2/CL-3 conformance. 24-month expiry. Auto-renewal warnings.</div><div class="ct">Issue / Suspend / Revoke / Expire</div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Run</h2>
+    <div class="grid">
+      <div class="card"><div class="cn">python -m guild_chain</div><div class="cd">Directory info + tag listing</div></div>
+      <div class="card"><div class="cn">python -m guild_chain --serve</div><div class="cd">HTTP API server</div></div>
+      <div class="card"><div class="cn">python -m guild_chain --mcp</div><div class="cd">MCP stdio server</div></div>
+      <div class="card"><div class="cn">python -m guild_chain --tags</div><div class="cd">List all guild chain tags</div></div>
+    </div>
+  </section>
+</main>
+<footer><a href="../">Home</a> · <a href="https://teslasolar.github.io/kspub/" target="_blank">KCC Whitepaper</a> · ACG Guild Chain · 510,510 GLD</footer>
+<script>
+const agents = [
+  {n:"Agent 0 — VETTING",d:"ELIZA coordinator. Candidate response analysis. 96.7% accuracy.",s:"Slots 000-127"},
+  {n:"Agent 1 — CERTIFICATION",d:"Document review + evidence. Conformance determination. 98.2% F1.",s:"Slots 128-191"},
+  {n:"Agent 2 — PUBLISHING",d:"Document formatting + manifesto alignment. Multi-format output.",s:"Slots 192-255"},
+  {n:"Agent 3 — REFUSAL",d:"The guardian. Refusal validity + retaliation detection + SLA enforcement.",s:"Slots 256-319"},
+  {n:"Agent 4 — AUDIT",d:"Evidence archive + retrieval. Compliance history analysis.",s:"Slots 320-383"},
+  {n:"Agent 5 — MEMBERSHIP",d:"Member lifecycle + cross-unit event bus routing.",s:"Slots 384-511"},
+  {n:"Agent 6 — RESOURCE MGR",d:"Load balancing across units. Node health monitoring.",s:"System"},
+  {n:"Agent 7 — ERROR CORRECT",d:"Self-healing for all units. SLA breach detection. 99.99%.",s:"System"},
+];
+const el=document.getElementById("agents");
+agents.forEach(a=>{const d=document.createElement("div");d.className="card";d.innerHTML=`<div class="cn">${a.n}</div><div class="cd">${a.d}</div><div class="ct">${a.s}</div>`;el.appendChild(d)});
+</script>
+</body>
+</html>
