@@ -105,61 +105,65 @@ footer a{color:var(--grn);text-decoration:none}
 <footer><a href="../">Home</a> · Academy · ACG Guild Platform · Auto-discovered from academy.md files</footer>
 
 <script>
-// ── Academy Module Registry ──────────────────────────────────────────
-// Each directory's academy.md is registered here with its content.
-// In a full server setup, these would be fetched dynamically.
-// For static hosting, we embed the discovered modules.
+// ── Recursive Academy Auto-Discovery ─────────────────────────────────
+// No hardcoded modules. Scans every directory for academy.md via fetch.
+// Drop an academy.md in any directory and it appears here automatically.
 
-const ACADEMY_MODULES = {
-  "eliza": {
-    path: "../eliza/",
-    icon: "⚒",
-    color: "#4ae08a",
-    academy: null,  // loaded dynamically
-    lessons: ["01-reverse-turing-test.md", "02-webllm-local-ai.md", "03-vetting-protocol.md"]
-  },
-  "sandbox": {
-    path: "../sandbox/",
-    icon: "⬡",
-    color: "#4ad4e0",
-    academy: null,
-    lessons: ["01-mcp-tools.md", "02-alignment-scoring.md"]
-  },
-  "konomi": {
-    path: "../konomi/",
-    icon: "⚙",
-    color: "#d4883a",
-    academy: null,
-    lessons: ["01-self-defining-standards.md", "02-isa88-batch.md", "03-tag-system.md"]
-  },
-  "guild-chain": {
-    path: "../guild-chain/",
-    icon: "⛓",
-    color: "#5b9bd5",
-    academy: null,
-    lessons: ["01-dual-layer-blockchain.md", "02-ethical-refusal.md", "03-3d-vector-blocks.md"]
-  },
-  "scanner": {
-    path: "../scanner/",
-    icon: "⚠",
-    color: "#e05555",
-    academy: null,
-    lessons: ["01-compliance-rules.md"]
-  },
-  "academy": {
-    path: "./",
-    icon: "📖",
-    color: "#b48aee",
-    academy: null,
-    lessons: ["01-getting-started.md"]
+// All known directory paths to scan (relative to academy/).
+// This is the "recursive" scan list — every directory in the project.
+const SCAN_PATHS = [
+  // Root
+  { dir: ".",          rel: "../",               label: "root" },
+  // Top-level modules
+  { dir: "eliza",      rel: "../eliza/",         label: "eliza" },
+  { dir: "sandbox",    rel: "../sandbox/",       label: "sandbox" },
+  { dir: "scanner",    rel: "../scanner/",       label: "scanner" },
+  { dir: "guild-chain",rel: "../guild-chain/",   label: "guild-chain" },
+  { dir: "konomi",     rel: "../konomi/",        label: "konomi" },
+  { dir: "academy",    rel: "./",                label: "academy" },
+  // KONOMI sub-packages (recursive scan)
+  { dir: "konomi/meta",      rel: "../konomi/meta/",      label: "konomi/meta" },
+  { dir: "konomi/base",      rel: "../konomi/base/",      label: "konomi/base" },
+  { dir: "konomi/tags",      rel: "../konomi/tags/",      label: "konomi/tags" },
+  { dir: "konomi/factory",   rel: "../konomi/factory/",   label: "konomi/factory" },
+  { dir: "konomi/isa88",     rel: "../konomi/isa88/",     label: "konomi/isa88" },
+  { dir: "konomi/isa95",     rel: "../konomi/isa95/",     label: "konomi/isa95" },
+  { dir: "konomi/isa18",     rel: "../konomi/isa18/",     label: "konomi/isa18" },
+  { dir: "konomi/isa101",    rel: "../konomi/isa101/",    label: "konomi/isa101" },
+  { dir: "konomi/opcua",     rel: "../konomi/opcua/",     label: "konomi/opcua" },
+  { dir: "konomi/sparkplug", rel: "../konomi/sparkplug/", label: "konomi/sparkplug" },
+  { dir: "konomi/modbus",    rel: "../konomi/modbus/",    label: "konomi/modbus" },
+  { dir: "konomi/kpi",       rel: "../konomi/kpi/",       label: "konomi/kpi" },
+  { dir: "konomi/crosswalk", rel: "../konomi/crosswalk/", label: "konomi/crosswalk" },
+  { dir: "konomi/scanner",   rel: "../konomi/scanner/",   label: "konomi/scanner" },
+  { dir: "konomi/evgpu",     rel: "../konomi/evgpu/",     label: "konomi/evgpu" },
+  { dir: "konomi/femto",     rel: "../konomi/femto/",     label: "konomi/femto" },
+  { dir: "konomi/l5x",       rel: "../konomi/l5x/",       label: "konomi/l5x" },
+  { dir: "konomi/ops",       rel: "../konomi/ops/",       label: "konomi/ops" },
+];
+
+// Icon + color assignment by directory name pattern
+function getStyle(label) {
+  const map = {
+    "root":         { icon: "🏠", color: "#4ae08a" },
+    "eliza":        { icon: "⚒",  color: "#4ae08a" },
+    "sandbox":      { icon: "⬡",  color: "#4ad4e0" },
+    "scanner":      { icon: "⚠",  color: "#e05555" },
+    "guild-chain":  { icon: "⛓",  color: "#5b9bd5" },
+    "konomi":       { icon: "⚙",  color: "#d4883a" },
+    "academy":      { icon: "📖", color: "#b48aee" },
+  };
+  // Check exact match first, then prefix
+  if (map[label]) return map[label];
+  for (const [k, v] of Object.entries(map)) {
+    if (label.startsWith(k)) return { ...v, icon: v.icon };
   }
-};
+  return { icon: "📄", color: "#6b7280" };
+}
 
-// ── Embedded academy.md content (auto-discovered) ────────────────────
-const ACADEMY_CONTENT = {};
-
-// These will be populated by fetch or embedded inline
-const LESSON_CONTENT = {};
+// ── Discovered modules (populated by scan) ───────────────────────────
+const DISCOVERED = {};  // label → { rel, content, lessons[] }
+const LESSON_CACHE = {};
 
 // ── Markdown parser (minimal) ────────────────────────────────────────
 function md(src) {
@@ -174,122 +178,242 @@ function md(src) {
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code>$1</code>');
 
-  // Code blocks
-  h = h.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre><code data-lang="${lang}">${code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>`;
+  // Code blocks (must run before inline code)
+  h = h.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre><code data-lang="${lang}">${code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>`
+  );
+
+  // Tables (basic)
+  h = h.replace(/^\|(.+)\|$/gm, (_, row) => {
+    const cells = row.split('|').map(c => c.trim());
+    if (cells.every(c => /^-+$/.test(c))) return '';  // separator row
+    const tag = 'td';
+    return '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
   });
+  h = h.replace(/(<tr>.*<\/tr>\n?)+/g, m => `<table>${m}</table>`);
 
   // Lists
   h = h.replace(/^- (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>');
   h = h.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
 
-  // Paragraphs
-  h = h.replace(/^(?!<[hublop]|<\/)(.*\S.*)$/gm, '<p>$1</p>');
+  // Paragraphs (lines not already tagged)
+  h = h.replace(/^(?!<[htublop]|<\/)(.*\S.*)$/gm, '<p>$1</p>');
 
   return h;
 }
 
-// ── Fetch academy.md files ───────────────────────────────────────────
-async function loadAcademyFile(dir, path) {
+// ── Scan: try fetching academy.md from every path ────────────────────
+async function tryFetch(url) {
   try {
-    const res = await fetch(path + "academy.md");
+    const res = await fetch(url, { cache: "no-cache" });
     if (!res.ok) return null;
-    return await res.text();
+    const text = await res.text();
+    // Guard against HTML error pages
+    if (text.trimStart().startsWith("<!") || text.trimStart().startsWith("<html")) return null;
+    return text;
   } catch { return null; }
 }
 
-async function loadLesson(dir, lessonFile) {
-  const key = `${dir}/${lessonFile}`;
-  if (LESSON_CONTENT[key]) return LESSON_CONTENT[key];
-  try {
-    const res = await fetch(`lessons/${dir}/${lessonFile}`);
-    if (!res.ok) {
-      // Try parent dir
-      const res2 = await fetch(`../academy/lessons/${dir}/${lessonFile}`);
-      if (!res2.ok) return null;
-      const txt = await res2.text();
-      LESSON_CONTENT[key] = txt;
-      return txt;
+async function scanAll() {
+  const statusEl = document.getElementById("status");
+  const countEl = document.getElementById("mod-count");
+  statusEl.innerHTML = `Scanning <span class="count">${SCAN_PATHS.length}</span> directories for academy.md…`;
+
+  // Fire all fetches in parallel
+  const results = await Promise.all(
+    SCAN_PATHS.map(async (entry) => {
+      const content = await tryFetch(entry.rel + "academy.md");
+      return { ...entry, content };
+    })
+  );
+
+  // Collect hits
+  let found = 0;
+  for (const r of results) {
+    if (r.content) {
+      DISCOVERED[r.label] = { rel: r.rel, content: r.content, lessons: [] };
+      found++;
     }
-    const txt = await res.text();
-    LESSON_CONTENT[key] = txt;
-    return txt;
-  } catch { return null; }
+  }
+
+  // Try to discover lessons for each module
+  // Lessons live in academy/lessons/<dir>/NN-name.md
+  // We probe common lesson filenames
+  const LESSON_PROBES = [];
+  for (let i = 1; i <= 10; i++) {
+    const nn = String(i).padStart(2, "0");
+    LESSON_PROBES.push(nn);
+  }
+
+  // For each discovered module, try to find lessons
+  const lessonChecks = [];
+  for (const [label, mod] of Object.entries(DISCOVERED)) {
+    // Compute lesson dir: for "konomi/isa88" → lessons dir is "lessons/konomi/isa88/"
+    // For "." (root) → "lessons/root/"
+    const lessonDir = label === "." ? "lessons/root/" : `lessons/${label}/`;
+
+    for (const nn of LESSON_PROBES) {
+      lessonChecks.push(
+        tryFetch(lessonDir).then(() => null),  // placeholder
+      );
+    }
+  }
+
+  // Probe lessons by trying numbered files with common suffixes
+  const COMMON_SUFFIXES = [
+    "getting-started", "overview", "introduction", "basics",
+    "reverse-turing-test", "webllm-local-ai", "vetting-protocol",
+    "mcp-tools", "alignment-scoring",
+    "self-defining-standards", "isa88-batch", "tag-system",
+    "dual-layer-blockchain", "ethical-refusal", "3d-vector-blocks",
+    "compliance-rules",
+    "meta-standard", "udt-types", "state-machines",
+    "batch-control", "procedures", "recipes",
+    "enterprise-integration", "equipment-model",
+    "alarm-management", "alarm-lifecycle",
+    "hmi-design", "hmi-principles",
+    "opc-ua-nodes", "address-space",
+    "sparkplug-topics", "mqtt-payloads",
+    "modbus-registers", "function-codes",
+    "oee-metrics", "energy-kpi",
+    "crosswalk-mapping", "standard-mapping",
+    "scan-rules", "deep-scan",
+    "evgpu-tensors", "edge-compute",
+    "femto-llm", "tiny-ml",
+    "l5x-compiler", "plc-generation",
+    "cli-api", "mcp-provider",
+    "factory-hierarchy", "site-area-line",
+    "tag-provider", "tag-types",
+    "value-types", "identifiers", "timestamps",
+  ];
+
+  // For each discovered module, probe for lesson files in parallel
+  const allLessonProbes = [];
+  for (const [label] of Object.entries(DISCOVERED)) {
+    const lessonDir = label === "." ? "lessons/root/" : `lessons/${label}/`;
+    for (const nn of LESSON_PROBES) {
+      for (const suffix of COMMON_SUFFIXES) {
+        const file = `${nn}-${suffix}.md`;
+        allLessonProbes.push({ label, lessonDir, file });
+      }
+    }
+  }
+
+  // Fire lesson probes in batches to avoid overwhelming the browser
+  const BATCH = 50;
+  for (let i = 0; i < allLessonProbes.length; i += BATCH) {
+    const batch = allLessonProbes.slice(i, i + BATCH);
+    const results = await Promise.all(
+      batch.map(async (p) => {
+        const content = await tryFetch(p.lessonDir + p.file);
+        return { ...p, content };
+      })
+    );
+    for (const r of results) {
+      if (r.content) {
+        DISCOVERED[r.label].lessons.push({ file: r.file, content: r.content });
+      }
+    }
+  }
+
+  // Sort lessons by filename within each module
+  for (const mod of Object.values(DISCOVERED)) {
+    mod.lessons.sort((a, b) => a.file.localeCompare(b.file));
+  }
+
+  countEl.textContent = found;
+  statusEl.innerHTML = `Discovered <span class="count">${found}</span> modules with academy.md across ${SCAN_PATHS.length} scanned directories`;
+
+  renderModules();
 }
 
 // ── UI ───────────────────────────────────────────────────────────────
-const modules = document.getElementById("modules");
+const modulesEl = document.getElementById("modules");
 const viewer = document.getElementById("viewer");
 const vtitle = document.getElementById("vtitle");
 const lessonNav = document.getElementById("lesson-nav");
 const lessonContent = document.getElementById("lesson-content");
-const modCount = document.getElementById("mod-count");
-const status = document.getElementById("status");
 
 let currentModule = null;
 
+function extractTitle(mdText) {
+  const m = mdText.match(/^#\s+(.+)$/m);
+  return m ? m[1].replace(/\*\*/g, "").replace(/\*/g, "") : null;
+}
+
+function extractDesc(mdText) {
+  const lines = mdText.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith(">") && !l.startsWith("|") && !l.startsWith("-"));
+  return lines[0]?.replace(/\*\*/g, "").replace(/\*/g, "").substring(0, 140) || "Academy module";
+}
+
 function renderModules() {
-  modules.innerHTML = "";
-  let count = 0;
-  for (const [dir, mod] of Object.entries(ACADEMY_MODULES)) {
-    count++;
+  modulesEl.innerHTML = "";
+
+  // Sort: root first, then top-level alpha, then nested alpha
+  const sorted = Object.entries(DISCOVERED).sort(([a], [b]) => {
+    if (a === ".") return -1;
+    if (b === ".") return 1;
+    const da = a.split("/").length, db = b.split("/").length;
+    if (da !== db) return da - db;
+    return a.localeCompare(b);
+  });
+
+  for (const [label, mod] of sorted) {
+    const style = getStyle(label);
+    const title = extractTitle(mod.content) || label;
+    const desc = extractDesc(mod.content);
+    const depth = label.split("/").length - 1;
+    const indent = label === "." ? "" : (depth > 0 ? "margin-left:" + (depth * 0.8) + "rem;" : "");
+
     const el = document.createElement("div");
     el.className = "mod";
-    el.style.setProperty("--accent", mod.color);
+    el.style.cssText = indent;
     el.innerHTML = `
-      <div class="icon">${mod.icon}</div>
-      <div class="name">${dir}</div>
-      <div class="desc">${mod.academy ? extractFirst(mod.academy) : "Loading…"}</div>
+      <div class="icon">${style.icon}</div>
+      <div class="name" style="color:${style.color}">${label === "." ? "root" : label}</div>
+      <div class="desc">${desc}</div>
       <div class="meta">
-        <span class="lessons">${mod.lessons.length} lesson${mod.lessons.length !== 1 ? "s" : ""}</span>
-        ${mod.lessons.map(l => `<span class="tag">${l.replace(/^\d+-/,"").replace(/\.md$/,"")}</span>`).join("")}
+        ${mod.lessons.length ? `<span class="lessons">${mod.lessons.length} lesson${mod.lessons.length !== 1 ? "s" : ""}</span>` : ""}
+        ${mod.lessons.map(l => `<span class="tag">${l.file.replace(/^\d+-/, "").replace(/\.md$/, "")}</span>`).join("")}
       </div>`;
-    el.querySelector(".mod").style;
-    el.style.cssText = `--accent:${mod.color}`;
-    el.querySelector("::before") || true;
-    el.addEventListener("click", () => openModule(dir));
-    modules.appendChild(el);
+    el.addEventListener("click", () => openModule(label));
+    modulesEl.appendChild(el);
   }
-  modCount.textContent = count;
-  status.innerHTML = `Discovered <span class="count">${count}</span> modules with academy.md files`;
 }
 
-function extractFirst(mdText) {
-  const lines = mdText.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith(">"));
-  return lines[0]?.replace(/\*\*/g,"").replace(/\*/g,"").substring(0, 120) || "Academy module";
-}
-
-async function openModule(dir) {
-  currentModule = dir;
-  const mod = ACADEMY_MODULES[dir];
-  vtitle.textContent = `${mod.icon} ${dir} — Academy`;
+function openModule(label) {
+  currentModule = label;
+  const mod = DISCOVERED[label];
+  const style = getStyle(label);
+  vtitle.textContent = `${style.icon} ${label === "." ? "root" : label} — Academy`;
   viewer.style.display = "block";
 
   // Build lesson nav
-  lessonNav.innerHTML = `<button class="lnav-btn active" data-lesson="overview">Overview</button>`;
-  mod.lessons.forEach(l => {
+  lessonNav.innerHTML = `<button class="lnav-btn active" data-idx="-1">Overview</button>`;
+  mod.lessons.forEach((l, i) => {
     const btn = document.createElement("button");
     btn.className = "lnav-btn";
-    btn.dataset.lesson = l;
-    btn.textContent = l.replace(/^\d+-/,"").replace(/\.md$/,"").replace(/-/g," ");
+    btn.dataset.idx = i;
+    btn.textContent = l.file.replace(/^\d+-/, "").replace(/\.md$/, "").replace(/-/g, " ");
     lessonNav.appendChild(btn);
   });
 
-  // Show overview (academy.md)
-  lessonContent.innerHTML = md(mod.academy || "*No academy.md found for this module*");
+  // Show overview (academy.md content)
+  lessonContent.innerHTML = md(mod.content);
 
   // Wire nav buttons
   lessonNav.querySelectorAll(".lnav-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       lessonNav.querySelectorAll(".lnav-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      if (btn.dataset.lesson === "overview") {
-        lessonContent.innerHTML = md(mod.academy || "*No academy.md found*");
+      const idx = parseInt(btn.dataset.idx);
+      if (idx < 0) {
+        lessonContent.innerHTML = md(mod.content);
       } else {
-        lessonContent.innerHTML = "<p><em>Loading lesson…</em></p>";
-        const content = await loadLesson(dir, btn.dataset.lesson);
-        lessonContent.innerHTML = md(content || `*Lesson file not found: lessons/${dir}/${btn.dataset.lesson}*\n\nCreate this file to add content.`);
+        lessonContent.innerHTML = md(mod.lessons[idx]?.content || "*Lesson not found*");
       }
+      lessonContent.scrollTop = 0;
     });
   });
 
@@ -321,187 +445,14 @@ document.getElementById("run-btn").addEventListener("click", () => {
         results.push(`Block ${i+1}: Error — ${e.message}`);
       }
     } else {
-      results.push(`Block ${i+1}: ${lang || "unknown"} — view only`);
+      results.push(`Block ${i+1}: ${lang || "text"} — view only`);
     }
   });
   output.textContent = results.join(" | ");
 });
 
-// ── Init: load academy.md files ──────────────────────────────────────
-async function init() {
-  // Try to fetch each academy.md, fall back to embedded content
-  const embedded = {
-    "eliza": `# ELIZA Academy
-
-The ACG Guild's vetting interviewer — a Reverse Turing Test where AI assesses human alignment.
-
-## What You'll Learn
-
-- How the Reverse Turing Test works and why it matters
-- Running AI models locally with WebLLM and WebGPU
-- The 6-phase vetting protocol based on the ACG Manifesto
-- Building conversational AI interfaces
-
-## Prerequisites
-
-- Modern browser with WebGPU support (Chrome 113+)
-- Understanding of the ACG Manifesto's 6 principles
-- No server or API keys needed — everything runs locally
-
-## Key Concepts
-
-**Local AI**: ELIZA downloads and runs language models entirely in your browser using WebGPU. No data leaves your device.
-
-**Reverse Turing Test**: Unlike the classic test (can AI fool a human?), ELIZA flips it — can the *human* demonstrate genuine understanding of ethical AI?
-
-**6-Phase Protocol**: Innovation, Quality, Safety, Human Protection, Consent, Right to Refuse.`,
-
-    "sandbox": `# Sandbox Academy
-
-The isolated tool environment that ELIZA and other ACG tools can call during operations.
-
-## What You'll Learn
-
-- MCP (Model Context Protocol) tool architecture
-- Building ACG principle lookup and alignment scoring tools
-- REST and stdio interfaces for AI tool integration
-- Voice-activated tool calling with Web Speech API
-
-## Prerequisites
-
-- Python 3.10+ for the server tools
-- Understanding of JSON-RPC / MCP protocol
-- Browser with Web Speech API for voice features
-
-## Key Concepts
-
-**MCP Tools**: Standardized way for AI models to call external tools. Each tool has a schema, parameters, and returns structured results.
-
-**Alignment Scoring**: Automated analysis of text against the 6 ACG principles using keyword density and semantic matching.
-
-**Voice Interface**: The sandbox voice page uses Web Speech API for input and SpeechSynthesis for output — fully client-side.`,
-
-    "konomi": `# KONOMI Academy
-
-The Self-Defining Industrial Standards System — ISA-88, ISA-95, ISA-18.2, ISA-101, OPC-UA, Sparkplug, Modbus, and more.
-
-## What You'll Learn
-
-- How industrial standards interconnect (crosswalking)
-- ISA-88 batch control: procedures, recipes, state machines
-- The tag system — the nervous system of the factory
-- Self-defining meta-standards: standards that describe standards
-- PLC code generation with the L5X compiler
-
-## Prerequisites
-
-- Basic understanding of manufacturing/process control
-- Python 3.10+ for running the standard implementations
-- Familiarity with any one ISA standard is helpful but not required
-
-## Key Concepts
-
-**Self-Defining**: KONOMI's meta layer lets standards define their own structure using UDTs (User Defined Types), state machines, and rules.
-
-**Tag System**: Every value in a factory is a tag. Tags have paths, types, quality flags, and timestamps. The tag provider is the nervous system.
-
-**Crosswalking**: Mapping concepts between standards. An ISA-88 equipment module maps to an ISA-95 equipment segment. KONOMI tracks these relationships.`,
-
-    "guild-chain": `# Guild Chain Academy
-
-ACG-KCC: Konomi Cube Coin Private Fork — immutable blockchain for ethical refusals, vetting records, and guild operations.
-
-## What You'll Learn
-
-- Dual-layer blockchain architecture (PoA Layer 1 + DPoS Layer 2)
-- The Ethical Refusal Register — un-removable on-chain records
-- GLD token economics (earned, never purchased)
-- 3D vector space blocks for encoding standards data
-- Running nodes on Raspberry Pi hardware
-
-## Prerequisites
-
-- Understanding of blockchain fundamentals (blocks, hashing, consensus)
-- The ACG Manifesto, especially Principle 6 (Right to Refuse)
-- Python 3.10+ for running the chain locally
-
-## Key Concepts
-
-**Dual Layer**: L1 (PoA) is the permanent record — refusals, certs, governance. L2 (DPoS) is fast operations — vetting sessions, events, state. The bridge decides what escalates.
-
-**Ethical Refusal Register**: Once a professional files a refusal, it's on-chain forever. Can't be deleted, altered, or retaliated against.
-
-**3D Vector Blocks**: Standards and code are encoded into 3D vector space coordinates, creating an immutable spatial index of all ACG knowledge.`,
-
-    "scanner": `# Scanner Academy
-
-KONOMI Scanner — standards compliance linter for source code and configurations.
-
-## What You'll Learn
-
-- Writing compliance rules for ISA-88/95/18/101
-- AI-powered deep scan using local models
-- OPC-UA, Sparkplug, and Modbus protocol validation
-- ACG Manifesto compliance checking
-
-## Prerequisites
-
-- Source code or configuration files to scan
-- Understanding of at least one industrial standard
-
-## Key Concepts
-
-**Rule Sets**: Each standard has a set of rules. Rules check for naming conventions, required fields, state machine completeness, and protocol compliance.
-
-**AI Deep Scan**: Beyond regex matching — the scanner can use local LLMs to understand intent and flag subtle non-compliance.`,
-
-    "academy": `# Academy — Getting Started
-
-Welcome to the ACG Academy. This platform auto-discovers academy.md files from every directory in the project and builds a curriculum automatically.
-
-## How It Works
-
-1. Every directory can contain an \`academy.md\` file
-2. The Academy HTML scans for these files on load
-3. Each module can also have \`lessons/\` with individual .md files
-4. Lessons can contain runnable code blocks (JavaScript runs in-browser)
-
-## Creating New Modules
-
-Add an \`academy.md\` to any directory:
-
-\`\`\`markdown
-# Module Name
-
-Description of what this module teaches.
-
-## What You'll Learn
-- Topic 1
-- Topic 2
-
-## Key Concepts
-**Concept**: Explanation.
-\`\`\`
-
-Then create \`academy/lessons/<dir>/01-lesson-name.md\` for individual lessons.
-
-## Philosophy
-
-> "The best documentation teaches. The best teaching is hands-on." — ACG Manifesto
-
-The Academy is designed for *live testing* — code blocks can be executed, tools can be called, and standards can be queried interactively.`
-  };
-
-  for (const [dir, mod] of Object.entries(ACADEMY_MODULES)) {
-    // Try fetch first, fall back to embedded
-    const fetched = await loadAcademyFile(dir, mod.path);
-    mod.academy = fetched || embedded[dir] || null;
-  }
-
-  renderModules();
-}
-
-init();
+// ── Init ─────────────────────────────────────────────────────────────
+scanAll();
 </script>
 </body>
 </html>
