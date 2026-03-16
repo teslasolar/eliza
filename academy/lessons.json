@@ -1,0 +1,27 @@
+{
+  "sandbox": [
+    "01-mcp-tools.md",
+    "02-alignment-scoring.md"
+  ],
+  "konomi": [
+    "01-self-defining-standards.md",
+    "02-isa88-batch.md",
+    "03-tag-system.md"
+  ],
+  "guild-chain": [
+    "01-dual-layer-blockchain.md",
+    "02-ethical-refusal.md",
+    "03-3d-vector-blocks.md"
+  ],
+  "eliza": [
+    "01-reverse-turing-test.md",
+    "02-webllm-local-ai.md",
+    "03-vetting-protocol.md"
+  ],
+  "scanner": [
+    "01-compliance-rules.md"
+  ],
+  "academy": [
+    "01-getting-started.md"
+  ]
+}

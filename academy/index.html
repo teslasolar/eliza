@@ -203,24 +203,47 @@ function md(src) {
   return h;
 }
 
-// ── Scan: try fetching academy.md from every path ────────────────────
-async function tryFetch(url) {
-  try {
-    const res = await fetch(url, { cache: "no-cache" });
-    if (!res.ok) return null;
-    const text = await res.text();
-    // Guard against HTML error pages
-    if (text.trimStart().startsWith("<!") || text.trimStart().startsWith("<html")) return null;
-    return text;
-  } catch { return null; }
+// ── Fetch with rate limiting ──────────────────────────────────────────
+// Concurrency limiter: max N simultaneous fetches
+function createLimiter(concurrency) {
+  let active = 0;
+  const queue = [];
+  function next() {
+    if (queue.length === 0 || active >= concurrency) return;
+    active++;
+    const { fn, resolve } = queue.shift();
+    fn().then(resolve).finally(() => { active--; next(); });
+  }
+  return function limit(fn) {
+    return new Promise(resolve => {
+      queue.push({ fn, resolve });
+      next();
+    });
+  };
 }
 
+const limit = createLimiter(6); // max 6 concurrent fetches
+
+async function tryFetch(url) {
+  return limit(async () => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const text = await res.text();
+      // Guard against HTML error pages
+      if (text.trimStart().startsWith("<!") || text.trimStart().startsWith("<html")) return null;
+      return text;
+    } catch { return null; }
+  });
+}
+
+// ── Scan: discover academy.md then load lessons from manifest ────────
 async function scanAll() {
   const statusEl = document.getElementById("status");
   const countEl = document.getElementById("mod-count");
   statusEl.innerHTML = `Scanning <span class="count">${SCAN_PATHS.length}</span> directories for academy.md…`;
 
-  // Fire all fetches in parallel
+  // Phase 1: Fetch academy.md from all paths (max 26 requests, rate limited)
   const results = await Promise.all(
     SCAN_PATHS.map(async (entry) => {
       const content = await tryFetch(entry.rel + "academy.md");
@@ -237,84 +260,19 @@ async function scanAll() {
     }
   }
 
-  // Try to discover lessons for each module
-  // Lessons live in academy/lessons/<dir>/NN-name.md
-  // We probe common lesson filenames
-  const LESSON_PROBES = [];
-  for (let i = 1; i <= 10; i++) {
-    const nn = String(i).padStart(2, "0");
-    LESSON_PROBES.push(nn);
-  }
-
-  // For each discovered module, try to find lessons
-  const lessonChecks = [];
-  for (const [label, mod] of Object.entries(DISCOVERED)) {
-    // Compute lesson dir: for "konomi/isa88" → lessons dir is "lessons/konomi/isa88/"
-    // For "." (root) → "lessons/root/"
-    const lessonDir = label === "." ? "lessons/root/" : `lessons/${label}/`;
-
-    for (const nn of LESSON_PROBES) {
-      lessonChecks.push(
-        tryFetch(lessonDir).then(() => null),  // placeholder
-      );
-    }
-  }
-
-  // Probe lessons by trying numbered files with common suffixes
-  const COMMON_SUFFIXES = [
-    "getting-started", "overview", "introduction", "basics",
-    "reverse-turing-test", "webllm-local-ai", "vetting-protocol",
-    "mcp-tools", "alignment-scoring",
-    "self-defining-standards", "isa88-batch", "tag-system",
-    "dual-layer-blockchain", "ethical-refusal", "3d-vector-blocks",
-    "compliance-rules",
-    "meta-standard", "udt-types", "state-machines",
-    "batch-control", "procedures", "recipes",
-    "enterprise-integration", "equipment-model",
-    "alarm-management", "alarm-lifecycle",
-    "hmi-design", "hmi-principles",
-    "opc-ua-nodes", "address-space",
-    "sparkplug-topics", "mqtt-payloads",
-    "modbus-registers", "function-codes",
-    "oee-metrics", "energy-kpi",
-    "crosswalk-mapping", "standard-mapping",
-    "scan-rules", "deep-scan",
-    "evgpu-tensors", "edge-compute",
-    "femto-llm", "tiny-ml",
-    "l5x-compiler", "plc-generation",
-    "cli-api", "mcp-provider",
-    "factory-hierarchy", "site-area-line",
-    "tag-provider", "tag-types",
-    "value-types", "identifiers", "timestamps",
-  ];
-
-  // For each discovered module, probe for lesson files in parallel
-  const allLessonProbes = [];
-  for (const [label] of Object.entries(DISCOVERED)) {
-    const lessonDir = label === "." ? "lessons/root/" : `lessons/${label}/`;
-    for (const nn of LESSON_PROBES) {
-      for (const suffix of COMMON_SUFFIXES) {
-        const file = `${nn}-${suffix}.md`;
-        allLessonProbes.push({ label, lessonDir, file });
+  // Phase 2: Load lesson manifest (1 request instead of thousands)
+  // lessons.json lists all available lesson files per module
+  const manifest = await tryFetch("lessons.json");
+  if (manifest) {
+    try {
+      const lessonMap = JSON.parse(manifest);
+      // lessonMap: { "eliza": ["01-reverse-turing-test.md", ...], ... }
+      for (const [label, files] of Object.entries(lessonMap)) {
+        if (DISCOVERED[label]) {
+          DISCOVERED[label].lessons = files.map(f => ({ file: f, content: null }));
+        }
       }
-    }
-  }
-
-  // Fire lesson probes in batches to avoid overwhelming the browser
-  const BATCH = 50;
-  for (let i = 0; i < allLessonProbes.length; i += BATCH) {
-    const batch = allLessonProbes.slice(i, i + BATCH);
-    const results = await Promise.all(
-      batch.map(async (p) => {
-        const content = await tryFetch(p.lessonDir + p.file);
-        return { ...p, content };
-      })
-    );
-    for (const r of results) {
-      if (r.content) {
-        DISCOVERED[r.label].lessons.push({ file: r.file, content: r.content });
-      }
-    }
+    } catch { /* invalid JSON, skip */ }
   }
 
   // Sort lessons by filename within each module
@@ -382,6 +340,15 @@ function renderModules() {
   }
 }
 
+async function loadLessonContent(label, lesson) {
+  // Lazy-load: only fetch lesson content when user clicks it
+  if (lesson.content) return lesson.content;
+  const lessonDir = label === "root" ? "lessons/root/" : `lessons/${label}/`;
+  const content = await tryFetch(lessonDir + lesson.file);
+  lesson.content = content;
+  return content;
+}
+
 function openModule(label) {
   currentModule = label;
   const mod = DISCOVERED[label];
@@ -402,16 +369,18 @@ function openModule(label) {
   // Show overview (academy.md content)
   lessonContent.innerHTML = md(mod.content);
 
-  // Wire nav buttons
+  // Wire nav buttons — lazy-load lesson content on click
   lessonNav.querySelectorAll(".lnav-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       lessonNav.querySelectorAll(".lnav-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       const idx = parseInt(btn.dataset.idx);
       if (idx < 0) {
         lessonContent.innerHTML = md(mod.content);
       } else {
-        lessonContent.innerHTML = md(mod.lessons[idx]?.content || "*Lesson not found*");
+        lessonContent.innerHTML = "<p><em>Loading lesson…</em></p>";
+        const content = await loadLessonContent(label, mod.lessons[idx]);
+        lessonContent.innerHTML = md(content || `*Lesson not found: ${mod.lessons[idx]?.file}*`);
       }
       lessonContent.scrollTop = 0;
     });
