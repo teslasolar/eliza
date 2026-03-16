@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sandbox — ELIZA MCP Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Crimson+Pro:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0d0f;--s1:#111518;--s2:#1a1f24;--br:#2a3038;--grn:#4ae08a;--grn2:#2cb866;--amb:#d4883a;--amb2:#e9a45c;--red:#e05555;--blu:#5b9bd5;--cyn:#4ad4e0;--t:#c8cdd3;--td:#6b7280;--tb:#eef0f2;--fm:'IBM Plex Mono',monospace;--fs:'Crimson Pro',Georgia,serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t);font-family:var(--fm);min-height:100vh;display:flex;flex-direction:column}
+.hdr{text-align:center;padding:2rem 1rem 1.4rem;border-bottom:1px solid var(--br);background:linear-gradient(180deg,#0f1317,var(--bg));position:relative}
+.hdr::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:200px;height:2px;background:linear-gradient(90deg,transparent,var(--cyn),transparent)}
+.hdr .badge{display:inline-block;border:1px solid var(--cyn);color:var(--cyn);font-size:.6rem;padding:.15rem .5rem;border-radius:1rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.5rem}
+.hdr h1{font-size:clamp(1.4rem,3.5vw,2rem);font-weight:600;color:var(--tb);letter-spacing:.15em}
+.hdr h1 span{color:var(--cyn)}
+.hdr .sub{font-family:var(--fs);font-size:.95rem;color:var(--td);font-style:italic;max-width:34rem;margin:.3rem auto 0}
+.hdr .nav{margin-top:.6rem;font-size:.6rem}
+.hdr .nav a{color:var(--grn);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;margin:0 .5rem}
+main{flex:1;max-width:56rem;width:100%;margin:0 auto;padding:1.5rem}
+.sec{margin-bottom:1.8rem}
+.sec h2{font-size:.65rem;color:var(--td);text-transform:uppercase;letter-spacing:.15em;margin-bottom:.6rem;padding-bottom:.3rem;border-bottom:1px solid var(--br)}
+.tools{display:grid;gap:.6rem}
+.tool{background:var(--s1);border:1px solid var(--br);border-radius:.4rem;padding:.8rem 1rem}
+.tool .tn{color:var(--cyn);font-weight:600;font-size:.82rem}
+.tool .td{font-family:var(--fs);font-size:.82rem;color:var(--td);margin-top:.15rem}
+.tool .tp{font-size:.6rem;color:var(--amb);margin-top:.3rem}
+.run{margin-top:.6rem;display:flex;gap:.4rem;flex-wrap:wrap}
+.run code{background:var(--s2);border:1px solid var(--br);border-radius:.25rem;padding:.25rem .5rem;font-size:.65rem;color:var(--grn)}
+footer{text-align:center;padding:.5rem;font-size:.5rem;color:var(--td);border-top:1px solid var(--br)}
+footer a{color:var(--grn);text-decoration:none}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="badge">Isolated Tool Environment</div>
+  <h1><span>Sandbox</span></h1>
+  <div class="sub">MCP tools ELIZA can call during vetting — separate from her own interview logic</div>
+  <div class="nav"><a href="../">Home</a> <a href="../eliza/">ELIZA</a> <a href="../konomi/">KONOMI</a> <a href="../scanner/">Scanner</a></div>
+</header>
+<main>
+  <section class="sec">
+    <h2>Run Modes</h2>
+    <div class="run">
+      <code>python -m sandbox --list</code>
+      <code>python -m sandbox --http --port 8078</code>
+      <code>python -m sandbox</code><span style="font-size:.6rem;color:var(--td);padding:.3rem"> ← MCP stdio</span>
+      <code>python -m sandbox --call acg_lookup_principle --args '{"number":"3"}'</code>
+    </div>
+  </section>
+  <section class="sec">
+    <h2>Available Tools</h2>
+    <div class="tools" id="tools"></div>
+  </section>
+</main>
+<footer><a href="../">Home</a> · Sandbox · ACG Guild Platform</footer>
+<script>
+const tools = [
+  {name:"acg_lookup_principle", desc:"Look up ACG Manifesto principles (1-6 or all)", params:"number: string"},
+  {name:"acg_check_alignment", desc:"Score text against ACG principles for alignment", params:"text: string (required)"},
+  {name:"acg_generate_scenario", desc:"Generate a vetting scenario for a given phase", params:"phase: integer (1-6)"},
+  {name:"acg_hash_response", desc:"Create tamper-proof hash of a vetting response", params:"text: string (required)"},
+  {name:"konomi_query", desc:"Query konomi standards system by keyword", params:"query: string (required)"},
+  {name:"konomi_factory_status", desc:"Get live factory tag status from konomi", params:"(none)"},
+];
+const el = document.getElementById("tools");
+tools.forEach(t => {
+  const d = document.createElement("div");
+  d.className = "tool";
+  d.innerHTML = `<div class="tn">${t.name}</div><div class="td">${t.desc}</div><div class="tp">params: ${t.params}</div>`;
+  el.appendChild(d);
+});
+</script>
+</body>
+</html>

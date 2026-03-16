@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KONOMI — Self-Defining Industrial Standards System</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Crimson+Pro:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0d0f;--s1:#111518;--s2:#1a1f24;--br:#2a3038;
+  --grn:#4ae08a;--grn2:#2cb866;--grnd:rgba(74,224,138,.08);
+  --amb:#d4883a;--amb2:#e9a45c;--ambd:rgba(212,136,58,.06);
+  --red:#e05555;--blu:#5b9bd5;--cyn:#4ad4e0;
+  --t:#c8cdd3;--td:#6b7280;--tb:#eef0f2;
+  --fm:'IBM Plex Mono',monospace;--fs:'Crimson Pro',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t);font-family:var(--fm);min-height:100vh;display:flex;flex-direction:column}
+
+.hdr{text-align:center;padding:2rem 1rem 1.4rem;border-bottom:1px solid var(--br);background:linear-gradient(180deg,#0f1317,var(--bg));position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:250px;height:2px;background:linear-gradient(90deg,transparent,var(--amb),transparent)}
+.hdr .badge{display:inline-block;border:1px solid var(--amb);color:var(--amb);font-size:.6rem;padding:.15rem .5rem;border-radius:1rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:.5rem}
+.hdr h1{font-size:clamp(1.5rem,4vw,2.4rem);font-weight:600;color:var(--tb);letter-spacing:.18em;margin:.2rem 0}
+.hdr h1 span{color:var(--amb)}
+.hdr .sub{font-family:var(--fs);font-size:1rem;color:var(--td);font-style:italic;max-width:40rem;margin:.4rem auto 0}
+.hdr .nav{margin-top:.7rem;font-size:.6rem}
+.hdr .nav a{color:var(--grn);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;margin:0 .5rem}
+.hdr .nav a:hover{text-decoration:underline}
+
+main{flex:1;max-width:68rem;width:100%;margin:0 auto;padding:1.8rem 1.5rem}
+
+.sec{margin-bottom:2rem}
+.sec h2{font-size:.68rem;color:var(--td);text-transform:uppercase;letter-spacing:.18em;margin-bottom:.7rem;padding-bottom:.35rem;border-bottom:1px solid var(--br)}
+.sec h2 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:.5rem;position:relative;top:-1px}
+
+/* Layer grid */
+.layers{display:grid;grid-template-columns:1fr;gap:1.2rem}
+.layer{background:var(--s1);border:1px solid var(--br);border-radius:.5rem;padding:1rem 1.2rem;position:relative}
+.layer::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;border-radius:4px 0 0 4px}
+.layer.l0::before{background:var(--grn)}.layer.l1::before{background:var(--amb)}
+.layer.l2::before{background:var(--blu)}.layer.l3::before{background:var(--cyn)}
+.layer.l4::before{background:var(--red)}.layer.l5::before{background:#a78bfa}
+.layer h3{font-size:.78rem;color:var(--tb);letter-spacing:.1em;margin-bottom:.3rem}
+.layer h3 .ln{color:var(--td);font-weight:400;margin-right:.4rem}
+.layer .ldesc{font-family:var(--fs);font-size:.82rem;color:var(--td);margin-bottom:.5rem}
+
+/* Module cards inside layers */
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(12rem,1fr));gap:.4rem}
+.mod{background:var(--s2);border:1px solid var(--br);border-radius:.3rem;padding:.45rem .6rem;font-size:.68rem;transition:border-color .2s}
+.mod:hover{border-color:var(--amb)}
+.mod .mn{color:var(--amb);font-weight:600}
+.mod .md{color:var(--td);font-size:.65rem;margin-top:.1rem}
+.mod .mt{display:inline-block;font-size:.48rem;color:var(--grn);border:1px solid rgba(74,224,138,.2);border-radius:.15rem;padding:.05rem .25rem;margin-top:.25rem}
+
+/* Tag provider table */
+.tpt{width:100%;border-collapse:collapse;font-size:.68rem;margin-top:.6rem}
+.tpt th{text-align:left;color:var(--td);font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;padding:.3rem .5rem;border-bottom:1px solid var(--br)}
+.tpt td{padding:.25rem .5rem;border-bottom:1px solid rgba(42,48,56,.4);color:var(--t)}
+.tpt td:first-child{color:var(--amb);font-weight:600}
+.tpt td:nth-child(2){color:var(--grn)}
+.tpt td:last-child{color:var(--td);font-family:var(--fs);font-size:.72rem}
+.tpt tr:hover td{background:rgba(74,224,138,.02)}
+
+/* Stats bar */
+.stats{display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.stat{text-align:center}
+.stat .sv{font-size:1.8rem;font-weight:600;color:var(--amb)}
+.stat .sl{font-size:.55rem;color:var(--td);text-transform:uppercase;letter-spacing:.12em;margin-top:.1rem}
+
+footer{text-align:center;padding:.5rem;font-size:.52rem;color:var(--td);border-top:1px solid var(--br)}
+footer a{color:var(--grn);text-decoration:none}
+
+@media(max-width:600px){
+  .hdr{padding:1.2rem .8rem .8rem}
+  main{padding:1rem .8rem}
+  .mods{grid-template-columns:1fr}
+  .stats{gap:.8rem}
+  .stat .sv{font-size:1.3rem}
+}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="badge">ACG Guild Platform</div>
+  <h1><span>KONOMI</span></h1>
+  <div class="sub">Self-Defining Industrial Standards System — every standard describes itself via UDTs, state machines, rules, and cross-walks</div>
+  <div class="nav"><a href="../">Home</a> <a href="../eliza/">ELIZA</a> <a href="../scanner/">Scanner</a> <a href="../sandbox/">Sandbox</a></div>
+</header>
+
+<main>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="sv">18</div><div class="sl">Packages</div></div>
+    <div class="stat"><div class="sv">96</div><div class="sl">Modules</div></div>
+    <div class="stat"><div class="sv">9.1K</div><div class="sl">Lines</div></div>
+    <div class="stat"><div class="sv">6</div><div class="sl">Layers</div></div>
+    <div class="stat"><div class="sv">18</div><div class="sl">Tag Providers</div></div>
+  </div>
+
+  <!-- Layer 0: Meta -->
+  <section class="sec">
+    <h2><span class="dot" style="background:var(--grn)"></span>Layer 0 — Meta-Standard Framework</h2>
+    <div class="layers">
+      <div class="layer l0">
+        <h3><span class="ln">L0</span>How standards define themselves</h3>
+        <div class="ldesc">The self-describing kernel. Every other layer is built from these primitives.</div>
+        <div class="mods">
+          <div class="mod"><div class="mn">meta.standard</div><div class="md">Standard definition</div><div class="mt">TagProvider: META</div></div>
+          <div class="mod"><div class="mn">meta.udt</div><div class="md">User Defined Types + Fields</div><div class="mt">TagProvider: META</div></div>
+          <div class="mod"><div class="mn">meta.entity</div><div class="md">Entities + Relations</div><div class="mt">TagProvider: META</div></div>
+          <div class="mod"><div class="mn">meta.rules</div><div class="md">Rule engine + severity</div><div class="mt">TagProvider: META</div></div>
+          <div class="mod"><div class="mn">meta.state_machine</div><div class="md">State machines + transitions</div><div class="mt">TagProvider: META</div></div>
+          <div class="mod"><div class="mn">base.*</div><div class="md">Timestamp, Quality, Value, Range</div><div class="mt">TagProvider: BASE</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layer 1: ISA Standards -->
+  <section class="sec">
+    <h2><span class="dot" style="background:var(--amb)"></span>Layer 1 — ISA Standards</h2>
+    <div class="layers">
+      <div class="layer l1">
+        <h3><span class="ln">ISA-88</span>Batch Control</h3>
+        <div class="ldesc">Equipment, recipes, procedures, batch management, and PackML state machines.</div>
+        <div class="mods">
+          <div class="mod"><div class="mn">isa88.equipment</div><div class="md">Enterprise → ControlModule hierarchy</div><div class="mt">TagProvider: ISA88</div></div>
+          <div class="mod"><div class="mn">isa88.recipe</div><div class="md">General → Control recipe levels</div><div class="mt">TagProvider: ISA88</div></div>
+          <div class="mod"><div class="mn">isa88.procedure</div><div class="md">Phase → Procedure hierarchy</div><div class="mt">TagProvider: ISA88</div></div>
+          <div class="mod"><div class="mn">isa88.batch</div><div class="md">Batch lifecycle + events</div><div class="mt">TagProvider: ISA88</div></div>
+          <div class="mod"><div class="mn">isa88.states</div><div class="md">Phase/batch/unit state machines</div><div class="mt">TagProvider: ISA88</div></div>
+        </div>
+      </div>
+      <div class="layer l1">
+        <h3><span class="ln">ISA-95</span>Enterprise/Control Integration</h3>
+        <div class="ldesc">Purdue hierarchy, equipment, material, personnel, production scheduling.</div>
+        <div class="mods">
+          <div class="mod"><div class="mn">isa95.levels</div><div class="md">L0–L4 Purdue model</div><div class="mt">TagProvider: ISA95</div></div>
+          <div class="mod"><div class="mn">isa95.equipment</div><div class="md">Physical assets + states</div><div class="mt">TagProvider: ISA95</div></div>
+          <div class="mod"><div class="mn">isa95.material</div><div class="md">Material classes + lots</div><div class="mt">TagProvider: ISA95</div></div>
+          <div class="mod"><div class="mn">isa95.personnel</div><div class="md">Personnel + qualifications</div><div class="mt">TagProvider: ISA95</div></div>
+          <div class="mod"><div class="mn">isa95.production</div><div class="md">Scheduling + performance</div><div class="mt">TagProvider: ISA95</div></div>
+          <div class="mod"><div class="mn">isa95.data_flows</div><div class="md">Inter-level data flows</div><div class="mt">TagProvider: ISA95</div></div>
+        </div>
+      </div>
+      <div class="layer l1">
+        <h3><span class="ln">ISA-18.2</span>Alarm Management</h3>
+        <div class="ldesc">Alarm lifecycle, priorities, shelving, suppression, metrics.</div>
+        <div class="mods">
+          <div class="mod"><div class="mn">isa18.alarm</div><div class="md">Alarm class + lifecycle</div><div class="mt">TagProvider: ISA18</div></div>
+          <div class="mod"><div class="mn">isa18.priority</div><div class="md">Priority levels + rationale</div><div class="mt">TagProvider: ISA18</div></div>
+          <div class="mod"><div class="mn">isa18.states</div><div class="md">Alarm state machine</div><div class="mt">TagProvider: ISA18</div></div>
+          <div class="mod"><div class="mn">isa18.metrics</div><div class="md">Alarm rate, flood, stale</div><div class="mt">TagProvider: ISA18</div></div>
+        </div>
+      </div>
+      <div class="layer l1">
+        <h3><span class="ln">ISA-101</span>HMI Design</h3>
+        <div class="ldesc">High-performance HMI: layers, colors, elements, faceplates.</div>
+        <div class="mods">
+          <div class="mod"><div class="mn">isa101.principles</div><div class="md">Design principles</div><div class="mt">TagProvider: ISA101</div></div>
+          <div class="mod"><div class="mn">isa101.layers</div><div class="md">L1–L4 display hierarchy</div><div class="mt">TagProvider: ISA101</div></div>
+          <div class="mod"><div class="mn">isa101.colors</div><div class="md">Color meanings + palette</div><div class="mt">TagProvider: ISA101</div></div>
+          <div class="mod"><div class="mn">isa101.elements</div><div class="md">Graphics, faceplates, trends</div><div class="mt">TagProvider: ISA101</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layer 2: Protocols -->
+  <section class="sec">
+    <h2><span class="dot" style="background:var(--blu)"></span>Layer 2 — Communication Protocols</h2>
+    <div class="layers">
+      <div class="layer l2">
+        <h3><span class="ln">L2</span>OPC-UA + Sparkplug + Modbus</h3>
+        <div class="ldesc">Industrial communication from field devices to enterprise.</div>
+        <div class="mods">
+          <div class="mod"><div class="mn">opcua.*</div><div class="md">Nodes, methods, address space, companions</div><div class="mt">TagProvider: OPCUA</div></div>
+          <div class="mod"><div class="mn">sparkplug.*</div><div class="md">MQTT topics, payloads, metrics, QoS</div><div class="mt">TagProvider: SPKPLG</div></div>
+          <div class="mod"><div class="mn">modbus.*</div><div class="md">Registers, function codes, data types</div><div class="mt">TagProvider: MODBUS</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layer 3: Operations -->
+  <section class="sec">
+    <h2><span class="dot" style="background:var(--cyn)"></span>Layer 3 — Operations + Analytics</h2>
+    <div class="layers">
+      <div class="layer l3">
+        <h3><span class="ln">L3</span>Factory, KPI, Crosswalk, Tags</h3>
+        <div class="mods">
+          <div class="mod"><div class="mn">factory.*</div><div class="md">Site → Area → Line → Unit + sim</div><div class="mt">TagProvider: FAC</div></div>
+          <div class="mod"><div class="mn">tags.*</div><div class="md">Tag providers, equipment, process, batch, alarm</div><div class="mt">TagProvider: TAGS</div></div>
+          <div class="mod"><div class="mn">kpi.*</div><div class="md">OEE, MTBF, cycle time, energy</div><div class="mt">TagProvider: KPI</div></div>
+          <div class="mod"><div class="mn">crosswalk.*</div><div class="md">ISA-88 ↔ 95 ↔ 18 ↔ 101 mappings</div><div class="mt">TagProvider: XWALK</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layer 4: Tools -->
+  <section class="sec">
+    <h2><span class="dot" style="background:var(--red)"></span>Layer 4 — Tooling</h2>
+    <div class="layers">
+      <div class="layer l4">
+        <h3><span class="ln">L4</span>Scanner, L5X, Ops, eVGPU, FemtoLLM</h3>
+        <div class="mods">
+          <div class="mod"><div class="mn">scanner.*</div><div class="md">Compliance rule engine</div><div class="mt">TagProvider: SCAN</div></div>
+          <div class="mod"><div class="mn">l5x.*</div><div class="md">Rockwell PLC compiler</div><div class="mt">TagProvider: L5X</div></div>
+          <div class="mod"><div class="mn">ops.*</div><div class="md">CLI / REST API / MCP</div><div class="mt">TagProvider: OPS</div></div>
+          <div class="mod"><div class="mn">evgpu.*</div><div class="md">CPU-based compute</div><div class="mt">TagProvider: EVGPU</div></div>
+          <div class="mod"><div class="mn">femto.*</div><div class="md">Tiny ML classification</div><div class="mt">TagProvider: FEMTO</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tag Provider Directory -->
+  <section class="sec">
+    <h2><span class="dot" style="background:var(--grn)"></span>Tag Provider Directory (Ignition-style)</h2>
+    <table class="tpt">
+      <tr><th>Provider</th><th>Prefix</th><th>Module</th><th>Description</th></tr>
+      <tr><td>META</td><td>[META]</td><td>meta/tags.py</td><td>Standards, UDTs, entities, rules, state machines</td></tr>
+      <tr><td>BASE</td><td>[BASE]</td><td>base/tags.py</td><td>Timestamps, quality flags, value ranges</td></tr>
+      <tr><td>ISA88</td><td>[ISA88]</td><td>isa88/tags.py</td><td>Equipment, recipes, procedures, batch state</td></tr>
+      <tr><td>ISA95</td><td>[ISA95]</td><td>isa95/tags.py</td><td>Levels, assets, material, personnel, production</td></tr>
+      <tr><td>ISA18</td><td>[ISA18]</td><td>isa18/tags.py</td><td>Alarms, priorities, states, metrics</td></tr>
+      <tr><td>ISA101</td><td>[ISA101]</td><td>isa101/tags.py</td><td>HMI layers, elements, navigation state</td></tr>
+      <tr><td>OPCUA</td><td>[OPCUA]</td><td>opcua/tags.py</td><td>Node count, subscriptions, server status</td></tr>
+      <tr><td>SPKPLG</td><td>[SPKPLG]</td><td>sparkplug/tags.py</td><td>Broker, topics, seq counter, birth/death</td></tr>
+      <tr><td>MODBUS</td><td>[MODBUS]</td><td>modbus/tags.py</td><td>Connections, registers, poll rate, errors</td></tr>
+      <tr><td>FAC</td><td>[FAC]</td><td>factory/tags.py</td><td>Site, area, line, unit states + sim tick</td></tr>
+      <tr><td>TAGS</td><td>[TAGS]</td><td>tags/tags.py</td><td>Tag system meta: total count, providers</td></tr>
+      <tr><td>KPI</td><td>[KPI]</td><td>kpi/tags.py</td><td>OEE, MTBF, cycle time, energy readings</td></tr>
+      <tr><td>XWALK</td><td>[XWALK]</td><td>crosswalk/tags.py</td><td>Crosswalk mappings count, last sync</td></tr>
+      <tr><td>SCAN</td><td>[SCAN]</td><td>scanner/tags.py</td><td>Scan results, compliance score, violations</td></tr>
+      <tr><td>L5X</td><td>[L5X]</td><td>l5x/tags.py</td><td>Compiled programs, rungs, export status</td></tr>
+      <tr><td>OPS</td><td>[OPS]</td><td>ops/tags.py</td><td>API status, CLI invocations, MCP calls</td></tr>
+      <tr><td>EVGPU</td><td>[EVGPU]</td><td>evgpu/tags.py</td><td>Cores, GFLOPS, tensor ops, utilization</td></tr>
+      <tr><td>FEMTO</td><td>[FEMTO]</td><td>femto/tags.py</td><td>Model loaded, params, memory, classifications</td></tr>
+    </table>
+  </section>
+
+</main>
+
+<footer>
+  <a href="../">Home</a> · <a href="../eliza/">ELIZA</a> · <a href="../scanner/">Scanner</a> · <a href="../sandbox/">Sandbox</a> · KONOMI Standard v1.0 · ACG Guild Platform
+</footer>
+</body>
+</html>
